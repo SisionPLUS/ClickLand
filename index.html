@@ -412,7 +412,8 @@
             targetClicks: 50,
             nextConquerCount: 1,
             landmarkName: null,
-            isSiege: false
+            isSiege: false,
+            lastClickTime: 0
         };
 
         // --- 3. Sound Effects (Web Audio API - Zero External URLs) ---
@@ -833,7 +834,8 @@
                 targetClicks: pricing.targetClicks,
                 nextConquerCount: pricing.nextConquerCount,
                 landmarkName: pricing.landmarkName,
-                isSiege: pricing.isSiege
+                isSiege: pricing.isSiege,
+                lastClickTime: 0
             };
 
             openMissionModal(existing, pricing);
@@ -917,10 +919,25 @@
         async function handleMissionClick(e) {
             if (!activeMission.cellId) return;
 
+            // 1. 키보드(Enter / Space 꾹 누르기) 꼼수 차단: 실제 포인터/마우스 클릭(detail > 0)만 허용
+            if (e && e.detail === 0) {
+                e.preventDefault();
+                return;
+            }
+
+            // 2. 초고속 오토클릭 매크로 방어 (최소 35ms 간격 = 초당 최대 ~28클릭)
+            const now = performance.now();
+            if (now - activeMission.lastClickTime < 35) {
+                return;
+            }
+            activeMission.lastClickTime = now;
+
+            const btn = document.getElementById('btn-mission-click');
+            if (btn) btn.blur(); // 포커스 즉시 해제로 키보드 연타 원천 차단
+
             activeMission.currentClicks += 1;
             playSound('click');
 
-            const btn = document.getElementById('btn-mission-click');
             btn.classList.remove('animate-hit');
             void btn.offsetWidth;
             btn.classList.add('animate-hit');
@@ -1183,7 +1200,13 @@
             });
 
             // Mission Modal Click & Close
-            document.getElementById('btn-mission-click').addEventListener('click', handleMissionClick);
+            const missionClickBtn = document.getElementById('btn-mission-click');
+            missionClickBtn.addEventListener('click', handleMissionClick);
+            missionClickBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                }
+            });
             document.getElementById('btn-close-mission').addEventListener('click', () => {
                 activeMission.cellId = null;
                 document.getElementById('mission-modal').classList.add('hidden');
