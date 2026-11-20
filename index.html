@@ -218,11 +218,24 @@
                 <p class="text-xs sm:text-sm text-amber-50 mt-1 font-medium">전 세계 1m × 1m 땅을 클릭해 실시간으로 점령하세요!</p>
             </div>
             
-            <form id="nickname-form" class="p-6 space-y-5">
+            <form id="nickname-form" class="p-6 space-y-4">
                 <div>
-                    <label for="input-nickname" class="block text-sm font-extrabold text-slate-700 mb-1.5">정복자 닉네임 (1~12자)</label>
-                    <input type="text" id="input-nickname" maxlength="12" required placeholder="예: 인천불주먹, 땅부자" 
-                        class="w-full px-4 py-3.5 rounded-2xl border-2 border-slate-300 focus:border-amber-500 focus:outline-none text-base font-bold text-slate-800 bg-slate-50" />
+                    <label for="input-nickname" class="block text-sm font-extrabold text-slate-700 mb-1">정복자 닉네임 (1~12자)</label>
+                    <input type="text" id="input-nickname" maxlength="12" required placeholder="예: 이시온, 땅부자" 
+                        class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-amber-500 focus:outline-none text-base font-bold text-slate-800 bg-slate-50" />
+                </div>
+
+                <div>
+                    <label for="input-password" class="block text-sm font-extrabold text-slate-700 mb-1">
+                        닉네임 보호 비밀번호 (4자 이상)
+                    </label>
+                    <input type="password" id="input-password" minlength="4" maxlength="20" required placeholder="사칭 방지용 비밀번호 입력" 
+                        class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-amber-500 focus:outline-none text-base font-bold text-slate-800 bg-slate-50" />
+                    <p class="text-[11px] text-slate-500 mt-1">· 새 닉네임은 자동 등록되며, 기존 닉네임은 비밀번호 일치 시 로그인됩니다.</p>
+                </div>
+
+                <div id="auth-error-box" class="hidden bg-rose-50 border border-rose-300 text-rose-600 text-xs font-extrabold px-3.5 py-2.5 rounded-xl">
+                    비밀번호가 일치하지 않습니다.
                 </div>
 
                 <div>
@@ -237,7 +250,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-[0.98] text-white font-game text-xl shadow-lg shadow-orange-500/30 transition cursor-pointer">
+                <button id="btn-auth-submit" type="submit" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-[0.98] text-white font-game text-xl shadow-lg shadow-orange-500/30 transition cursor-pointer">
                     실시간 게임 입장하기
                 </button>
             </form>
@@ -322,6 +335,7 @@
             getDatabase,
             ref,
             set,
+            get,
             onValue,
             onChildAdded,
             onChildChanged,
@@ -352,72 +366,68 @@
         const SIEGE_INCREMENT_CLICKS = 50; // 뺏길 때마다 추가되는 클릭 수
 
         // 유명 지역 및 랜드마크 커스텀 난이도 구역 (반경 내 기본 점령 클릭 수 150+)
-        const FAMOUS_LANDMARK_ZONES = [
-            // 대한민국 (Korea)
-            { name: '서울 강남역 특구', lat: 37.4979, lng: 127.0276, radiusMeters: 600, baseClicks: 150 },
-            { name: '서울 광화문·경복궁 특구', lat: 37.5759, lng: 126.9768, radiusMeters: 700, baseClicks: 150 },
-            { name: '서울 남산타워 특구', lat: 37.5512, lng: 126.9882, radiusMeters: 500, baseClicks: 150 },
-            { name: '서울 홍대입구 특구', lat: 37.5572, lng: 126.9247, radiusMeters: 550, baseClicks: 150 },
-            { name: '서울 잠실 롯데타워 특구', lat: 37.5125, lng: 127.1025, radiusMeters: 600, baseClicks: 150 },
-            { name: '인천 작동초등학교 본부', lat: 37.5145, lng: 126.8045, radiusMeters: 250, baseClicks: 150 },
-            { name: '인천국제공항 특구', lat: 37.4602, lng: 126.4407, radiusMeters: 1000, baseClicks: 150 },
-            { name: '부산 해운대 해수욕장 특구', lat: 35.1587, lng: 129.1604, radiusMeters: 700, baseClicks: 150 },
-            { name: '제주 성산일출봉 특구', lat: 33.4584, lng: 126.9425, radiusMeters: 600, baseClicks: 150 },
+        const FAMOUS_ZONES = [
+            // 한국 (Korea)
+            { name: '인천 작동초등학교 특구', lat: 37.5145, lng: 126.8045, radiusM: 350, baseClicks: 150 },
+            { name: '서울 강남역 중심상권', lat: 37.4979, lng: 127.0276, radiusM: 600, baseClicks: 150 },
+            { name: '서울 경복궁 & 광화문', lat: 37.5796, lng: 126.9770, radiusM: 750, baseClicks: 150 },
+            { name: '서울 N서울타워 (남산)', lat: 37.5512, lng: 126.9882, radiusM: 500, baseClicks: 150 },
+            { name: '서울 잠실 롯데월드타워', lat: 37.5125, lng: 127.1025, radiusM: 600, baseClicks: 150 },
+            { name: '서울 홍대입구 거리', lat: 37.5572, lng: 126.9245, radiusM: 550, baseClicks: 150 },
+            { name: '인천국제공항 특구', lat: 37.4602, lng: 126.4407, radiusM: 1200, baseClicks: 150 },
+            { name: '부산 해운대 해수욕장', lat: 35.1587, lng: 129.1604, radiusM: 800, baseClicks: 150 },
+            { name: '제주 성산일출봉', lat: 33.4581, lng: 126.9425, radiusM: 700, baseClicks: 150 },
 
             // 일본 (Japan)
-            { name: '도쿄 시부야 스크램블 특구', lat: 35.6580, lng: 139.7016, radiusMeters: 600, baseClicks: 150 },
-            { name: '도쿄 타워 특구', lat: 35.6586, lng: 139.7454, radiusMeters: 500, baseClicks: 150 },
-            { name: '도쿄 신주쿠 특구', lat: 35.6896, lng: 139.7006, radiusMeters: 600, baseClicks: 150 },
-            { name: '오사카 도톤보리 특구', lat: 34.6687, lng: 135.5013, radiusMeters: 550, baseClicks: 150 },
-            { name: '후지산 정상 특구', lat: 35.3606, lng: 138.7274, radiusMeters: 1200, baseClicks: 200 },
+            { name: '도쿄 시부야 스크램블', lat: 35.6580, lng: 139.7016, radiusM: 550, baseClicks: 150 },
+            { name: '도쿄 타워 & 롯폰기', lat: 35.6586, lng: 139.7454, radiusM: 550, baseClicks: 150 },
+            { name: '도쿄 신주쿠역 중심', lat: 35.6896, lng: 139.7006, radiusM: 600, baseClicks: 150 },
+            { name: '도쿄 아사쿠사 센소지', lat: 35.7148, lng: 139.7967, radiusM: 500, baseClicks: 150 },
+            { name: '오사카 도톤보리 & 글리코상', lat: 34.6687, lng: 135.5013, radiusM: 550, baseClicks: 150 },
+            { name: '오사카성 천수각', lat: 34.6873, lng: 135.5262, radiusM: 650, baseClicks: 150 },
+            { name: '교토 후시미 이나리 신사', lat: 34.9671, lng: 135.7727, radiusM: 600, baseClicks: 150 },
 
-            // 전 세계 글로벌 명소 (Global Landmarks)
-            { name: '뉴욕 타임스스퀘어 특구', lat: 40.7580, lng: -73.9855, radiusMeters: 650, baseClicks: 150 },
-            { name: '뉴욕 자유의 여신상 특구', lat: 40.6892, lng: -74.0445, radiusMeters: 450, baseClicks: 150 },
-            { name: '파리 에펠탑 특구', lat: 48.8584, lng: 2.2945, radiusMeters: 600, baseClicks: 150 },
-            { name: '런던 빅벤·웨스트민스터 특구', lat: 51.5007, lng: -0.1246, radiusMeters: 600, baseClicks: 150 },
-            { name: '로마 콜로세움 특구', lat: 41.8902, lng: 12.4922, radiusMeters: 500, baseClicks: 150 },
-            { name: '시드니 오페라하우스 특구', lat: -33.8568, lng: 151.2153, radiusMeters: 500, baseClicks: 150 }
+            // 해외 글로벌 명소 (Global Landmarks)
+            { name: '뉴욕 타임스스퀘어', lat: 40.7580, lng: -73.9855, radiusM: 650, baseClicks: 150 },
+            { name: '뉴욕 자유의 여신상', lat: 40.6892, lng: -74.0445, radiusM: 500, baseClicks: 150 },
+            { name: '파리 에펠탑 광장', lat: 48.8584, lng: 2.2945, radiusM: 650, baseClicks: 150 },
+            { name: '런던 빅벤 & 국회의사당', lat: 51.5007, lng: -0.1246, radiusM: 550, baseClicks: 150 },
+            { name: '로마 콜로세움', lat: 41.8902, lng: 12.4922, radiusM: 550, baseClicks: 150 },
+            { name: '시드니 오페라하우스', lat: -33.8568, lng: 151.2153, radiusM: 550, baseClicks: 150 },
+            { name: '싱가포르 마리나베이샌즈', lat: 1.2834, lng: 103.8607, radiusM: 600, baseClicks: 150 },
+            { name: '두바이 부르즈 할리파', lat: 25.1972, lng: 55.2744, radiusM: 650, baseClicks: 150 }
         ];
 
         let playerProfile = {
             nickname: localStorage.getItem('wc_nickname') || '',
-            color: localStorage.getItem('wc_color') || '#ef4444'
+            color: localStorage.getItem('wc_color') || '#ef4444',
+            passHash: localStorage.getItem('wc_pass_hash') || ''
         };
 
         let soundEnabled = true;
-        let audioCtx = null;
+        let selectedColor = playerProfile.color;
+        let territories = {};
+        let isInitialSnapshotLoaded = false;
 
-        // Map & Layer variables
-        let map = null;
-        let streetTileLayer = null;
-        let satelliteLayerGroup = null;
-        let isSatelliteMode = true;
-        let gridLayerGroup = null;
-        let ownedLayerGroup = null;
+        let map;
+        let activeTileLayer;
+        let isSatelliteMode = false;
+        let gridLayerGroup;
+        let ownedLayerGroup;
         let renderDebounceTimer = null;
 
-        // Synchronized Territories Store
-        let territories = {};
-        let initialSyncDone = false;
-
-        // Active Mission State
         let activeMission = {
-            cellId: null,
-            latIndex: 0,
-            lngIndex: 0,
-            centerLat: 0,
-            centerLng: 0,
-            currentClicks: 0,
-            targetClicks: 50,
-            nextConquerCount: 1,
-            landmarkName: null,
+            cell: null,
+            clicks: 0,
+            target: 50,
             isSiege: false,
+            zoneInfo: null,
             lastClickTime: 0
         };
 
-        // --- 3. Sound Effects (Web Audio API - Zero External URLs) ---
-        function playSound(type) {
+        // --- 3. Sound Synthesizer (Web Audio API) ---
+        let audioCtx = null;
+        function playTone(type) {
             if (!soundEnabled) return;
             try {
                 if (!audioCtx) {
@@ -426,6 +436,7 @@
                 if (audioCtx.state === 'suspended') {
                     audioCtx.resume();
                 }
+
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain);
@@ -434,176 +445,113 @@
                 const now = audioCtx.currentTime;
                 if (type === 'click') {
                     osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(320 + (activeMission.currentClicks * 5), now);
-                    osc.frequency.exponentialRampToValueAtTime(640, now + 0.06);
+                    const pitch = 300 + (activeMission.clicks / Math.max(activeMission.target, 1)) * 460;
+                    osc.frequency.setValueAtTime(pitch, now);
+                    osc.frequency.exponentialRampToValueAtTime(pitch * 1.25, now + 0.06);
                     gain.gain.setValueAtTime(0.14, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
                     osc.start(now);
-                    osc.stop(now + 0.06);
-                } else if (type === 'conquer') {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(523.25, now); // C5
-                    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-                    osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
-                    osc.frequency.setValueAtTime(1046.50, now + 0.24); // C6
-                    gain.gain.setValueAtTime(0.22, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-                    osc.start(now);
-                    osc.stop(now + 0.45);
+                    osc.stop(now + 0.07);
+                } else if (type === 'win') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        g.gain.setValueAtTime(0.16, now + idx * 0.08);
+                        g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+                        o.start(now + idx * 0.08);
+                        o.stop(now + idx * 0.08 + 0.3);
+                    });
                 }
             } catch (e) {
-                // Ignore audio block errors on restricted browsers
+                // Audio fallback ignored
             }
         }
 
-        // --- 4. Pure Math 1m x 1m Grid Projection (Zero Geocoding API Cost) ---
-        function getGridStepDegrees(lat) {
-            const latStep = 1 / 111320; // ~1 meter in latitude degrees
-            const cosLat = Math.max(0.1, Math.cos((lat * Math.PI) / 180));
-            const lngStep = 1 / (111320 * cosLat); // ~1 meter in longitude degrees at given latitude
-            return { latStep, lngStep };
+        // --- 4. Pure Math 1m × 1m Geodesic Grid Engine ---
+        const METERS_PER_DEGREE_LAT = 111320.0;
+
+        function getMetersPerDegreeLng(lat) {
+            return METERS_PER_DEGREE_LAT * Math.max(0.05, Math.cos((lat * Math.PI) / 180));
         }
 
         function latLngToGridCell(lat, lng) {
-            const { latStep, lngStep } = getGridStepDegrees(lat);
-            const latIndex = Math.floor(lat / latStep);
-            const lngIndex = Math.floor(lng / lngStep);
-            const cellId = `${latIndex}_${lngIndex}`;
-            const bounds = [
-                [latIndex * latStep, lngIndex * lngStep],
-                [(latIndex + 1) * latStep, (lngIndex + 1) * lngStep]
-            ];
-            const centerLat = (latIndex + 0.5) * latStep;
-            const centerLng = (lngIndex + 0.5) * lngStep;
-            return { cellId, latIndex, lngIndex, bounds, centerLat, centerLng };
-        }
+            const latIndex = Math.floor(lat * METERS_PER_DEGREE_LAT);
+            const metersPerDegLng = getMetersPerDegreeLng(lat);
+            const lngIndex = Math.floor(lng * metersPerDegLng);
 
-        function gridIndicesToBounds(latIndex, lngIndex, refLat) {
-            const { latStep, lngStep } = getGridStepDegrees(refLat);
-            return [
-                [latIndex * latStep, lngIndex * lngStep],
-                [(latIndex + 1) * latStep, (lngIndex + 1) * lngStep]
-            ];
-        }
-
-        // Haversine 거리 계산 (미터 단위) & 유명 랜드마크 판별
-        function getDistanceMeters(lat1, lng1, lat2, lng2) {
-            const R = 6371000;
-            const dLat = ((lat2 - lat1) * Math.PI) / 180;
-            const dLng = ((lng2 - lng1) * Math.PI) / 180;
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos((lat1 * Math.PI) / 180) *
-                Math.cos((lat2 * Math.PI) / 180) *
-                Math.sin(dLng / 2) *
-                Math.sin(dLng / 2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        }
-
-        function getCellPricingInfo(lat, lng, existingData) {
-            let matchedLandmark = null;
-            for (const zone of FAMOUS_LANDMARK_ZONES) {
-                const dist = getDistanceMeters(lat, lng, zone.lat, zone.lng);
-                if (dist <= zone.radiusMeters) {
-                    matchedLandmark = zone;
-                    break;
-                }
-            }
-
-            const baseClicks = matchedLandmark ? matchedLandmark.baseClicks : 50;
-            const prevConquerCount = existingData ? (existingData.conquerCount || 1) : 0;
-            const isSiege = Boolean(existingData && existingData.owner !== playerProfile.nickname);
-
-            // 빈 땅이면 baseClicks(일반 50, 명소 150)
-            // 남의 땅을 뺏을 때는 baseClicks + (이전 주인 교체 횟수 * 50)
-            const targetClicks = isSiege
-                ? baseClicks + prevConquerCount * SIEGE_INCREMENT_CLICKS
-                : baseClicks;
+            const south = latIndex / METERS_PER_DEGREE_LAT;
+            const north = (latIndex + 1) / METERS_PER_DEGREE_LAT;
+            const west = lngIndex / metersPerDegLng;
+            const east = (lngIndex + 1) / metersPerDegLng;
 
             return {
-                baseClicks,
-                targetClicks,
-                prevConquerCount,
-                nextConquerCount: prevConquerCount + 1,
-                landmarkName: matchedLandmark ? matchedLandmark.name : null,
-                isSiege
+                id: `${latIndex}_${lngIndex}`,
+                latIndex,
+                lngIndex,
+                bounds: [[south, west], [north, east]],
+                center: [(south + north) / 2, (west + east) / 2]
             };
         }
 
-        // --- 5. Toast Notification Helper ---
-        let toastTimer = null;
-        function showToast(message) {
-            const toastEl = document.getElementById('toast-msg');
-            toastEl.textContent = message;
-            toastEl.classList.remove('hidden');
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => {
-                toastEl.classList.add('hidden');
-            }, 3000);
+        function gridIndicesToBounds(latIndex, lngIndex, approxLat) {
+            const south = latIndex / METERS_PER_DEGREE_LAT;
+            const north = (latIndex + 1) / METERS_PER_DEGREE_LAT;
+            const metersPerDegLng = getMetersPerDegreeLng(approxLat);
+            const west = lngIndex / metersPerDegLng;
+            const east = (lngIndex + 1) / metersPerDegLng;
+            return [[south, west], [north, east]];
         }
 
-        // --- 6. HUD & Leaderboard Updates ---
-        function updatePlayerHUD() {
-            const badge = document.getElementById('player-color-badge');
-            const nickEl = document.getElementById('hud-nickname');
-            const countEl = document.getElementById('hud-land-count');
+        // --- 5. Famous Landmark & Escalating Siege Cost Engine ---
+        function getDistanceMeters(lat1, lng1, lat2, lng2) {
+            const dLat = (lat2 - lat1) * METERS_PER_DEGREE_LAT;
+            const avgLat = (lat1 + lat2) / 2;
+            const dLng = (lng2 - lng1) * getMetersPerDegreeLng(avgLat);
+            return Math.hypot(dLat, dLng);
+        }
 
-            badge.style.backgroundColor = playerProfile.color;
-            badge.textContent = playerProfile.nickname ? playerProfile.nickname.charAt(0).toUpperCase() : '왕';
-            nickEl.textContent = playerProfile.nickname || '플레이어';
-
-            let myCount = 0;
-            Object.values(territories).forEach((t) => {
-                if (t && t.owner === playerProfile.nickname) {
-                    myCount++;
+        function getFamousZoneInfo(lat, lng) {
+            for (const zone of FAMOUS_ZONES) {
+                if (getDistanceMeters(lat, lng, zone.lat, zone.lng) <= zone.radiusM) {
+                    return zone;
                 }
-            });
-            countEl.textContent = myCount.toLocaleString();
+            }
+            return null;
         }
 
-        function updateLeaderboard() {
-            const listEl = document.getElementById('leaderboard-list');
-            const totalEl = document.getElementById('total-global-lands');
+        function calculateConquestCost(lat, lng, existingLand) {
+            const zoneInfo = getFamousZoneInfo(lat, lng);
+            const baseClicks = zoneInfo ? zoneInfo.baseClicks : 50;
 
-            const entries = Object.values(territories).filter(Boolean);
-            totalEl.textContent = entries.length.toLocaleString();
-
-            if (entries.length === 0) {
-                listEl.innerHTML = `<li class="text-slate-400 text-center py-2">아직 점령된 땅이 없습니다. 첫 영토를 차지하세요!</li>`;
-                return;
+            if (!existingLand) {
+                return {
+                    targetClicks: baseClicks,
+                    baseClicks,
+                    conquerCount: 0,
+                    isSiege: false,
+                    zoneInfo
+                };
             }
 
-            const stats = {};
-            entries.forEach((item) => {
-                if (!stats[item.owner]) {
-                    stats[item.owner] = { owner: item.owner, color: item.color || '#ef4444', count: 0 };
-                }
-                stats[item.owner].count += 1;
-                stats[item.owner].color = item.color || stats[item.owner].color;
-            });
+            // 뺏길 때마다 conquerCount(누적 점령 횟수)만큼 +50클릭씩 할증
+            const prevConquers = Math.max(1, Number(existingLand.conquerCount) || 1);
+            const targetClicks = baseClicks + prevConquers * SIEGE_INCREMENT_CLICKS;
 
-            const sorted = Object.values(stats)
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 5);
-
-            listEl.innerHTML = sorted
-                .map((player, idx) => {
-                    const isMe = player.owner === playerProfile.nickname;
-                    const rankBadge = idx === 0 ? '1위' : idx === 1 ? '2위' : idx === 2 ? '3위' : `${idx + 1}위`;
-                    return `
-                        <li class="flex items-center justify-between px-2.5 py-1.5 rounded-xl ${isMe ? 'bg-amber-500/20 border border-amber-400/50' : 'bg-slate-800/70'}">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <span class="text-[11px] font-black ${idx === 0 ? 'text-amber-400' : 'text-slate-400'} shrink-0">${rankBadge}</span>
-                                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${player.color}"></span>
-                                <span class="font-bold truncate ${isMe ? 'text-amber-200' : 'text-slate-200'}">${escapeHTML(player.owner)}</span>
-                            </div>
-                            <span class="font-extrabold text-emerald-400 shrink-0 ml-2">${player.count.toLocaleString()}칸</span>
-                        </li>
-                    `;
-                })
-                .join('');
+            return {
+                targetClicks,
+                baseClicks,
+                conquerCount: prevConquers,
+                isSiege: true,
+                zoneInfo
+            };
         }
 
+        // --- 6. Security Helpers (HTML Escape + SHA-256 Password Auth) ---
         function escapeHTML(str) {
             return String(str)
                 .replace(/&/g, '&amp;')
@@ -612,86 +560,115 @@
                 .replace(/"/g, '&quot;');
         }
 
+        async function hashPassword(rawPassword) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(`clickland_salt_${rawPassword}`);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function sanitizePlayerKey(nickname) {
+            return encodeURIComponent(nickname.trim()).replace(/\./g, '%2E');
+        }
+
+        async function authenticatePlayer(nickname, password, color, isSilentAutoLogin = false) {
+            const safeKey = sanitizePlayerKey(nickname);
+            const playerRef = ref(db, `players/${safeKey}`);
+            const passHash = await hashPassword(password);
+
+            const snap = await get(playerRef);
+            if (snap.exists()) {
+                const record = snap.val();
+                if (record.passHash !== passHash) {
+                    return { ok: false, reason: '이미 등록된 닉네임입니다. 비밀번호가 일치하지 않습니다!' };
+                }
+                if (!isSilentAutoLogin && color && record.color !== color) {
+                    await set(playerRef, {
+                        ...record,
+                        color,
+                        updatedAt: Date.now()
+                    });
+                }
+                return { ok: true, passHash, color: color || record.color || '#ef4444', isNew: false };
+            } else {
+                await set(playerRef, {
+                    nickname: nickname.trim(),
+                    passHash,
+                    color: color || '#ef4444',
+                    createdAt: Date.now()
+                });
+                return { ok: true, passHash, color: color || '#ef4444', isNew: true };
+            }
+        }
+
         // --- 7. Map Initialization & High-Res Satellite + Street Tile Layers ---
+        function createBaseTileLayer(satellite) {
+            if (satellite) {
+                return L.layerGroup([
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: 'Tiles &copy; Esri',
+                        maxNativeZoom: 18,
+                        maxZoom: 22
+                    }),
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                        maxNativeZoom: 18,
+                        maxZoom: 22
+                    })
+                ]);
+            }
+            // Google Maps 도로·건물·한글 지명 타일 (전 세계 고해상도 줌 20+ 지원)
+            return L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                attribution: '&copy; Google Maps',
+                maxNativeZoom: 20,
+                maxZoom: 22
+            });
+        }
+
         function initMap() {
             map = L.map('map', {
                 center: [DEFAULT_LAT, DEFAULT_LNG],
                 zoom: 19,
                 maxZoom: 22,
                 minZoom: 3,
-                zoomControl: false,
-                preferCanvas: true
+                zoomControl: false
             });
-
-            // High-resolution Esri World Imagery + Place Labels (Full Korea & Global Coverage)
-            const satelliteBase = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-                maxZoom: 22,
-                maxNativeZoom: 18
-            });
-            const satelliteLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 22,
-                maxNativeZoom: 18
-            });
-            satelliteLayerGroup = L.layerGroup([satelliteBase, satelliteLabels]);
-
-            // Toggleable Road Map Layer (Full Korea & Global Street Detail)
-            streetTileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-                attribution: 'Map data &copy; Google',
-                maxZoom: 22,
-                maxNativeZoom: 19
-            });
-
-            satelliteLayerGroup.addTo(map);
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            gridLayerGroup = L.layerGroup().addTo(map);
+            activeTileLayer = createBaseTileLayer(false).addTo(map);
+
             ownedLayerGroup = L.layerGroup().addTo(map);
+            gridLayerGroup = L.layerGroup().addTo(map);
 
             map.on('moveend zoomend', () => {
-                updateZoomBanner();
+                updateZoomHUD();
                 scheduleMapRender();
             });
 
             map.on('click', (e) => {
                 if (map.getZoom() < GRID_MIN_ZOOM) {
-                    showToast('지도를 조금 더 확대하면 1m × 1m 칸을 선택할 수 있습니다!');
+                    map.setView(e.latlng, 19);
+                    showToast('1m × 1m 그리드 크기로 확대했습니다!');
                     return;
                 }
                 const cell = latLngToGridCell(e.latlng.lat, e.latlng.lng);
                 handleCellInteraction(cell);
             });
 
-            updateZoomBanner();
+            updateZoomHUD();
             scheduleMapRender();
         }
 
-        function updateZoomBanner() {
-            const z = map.getZoom();
-            document.getElementById('zoom-level-display').textContent = z;
-            const activeBanner = document.getElementById('banner-active');
-            const zoomOutBanner = document.getElementById('banner-zoom-out');
-
-            if (z >= GRID_MIN_ZOOM) {
-                activeBanner.classList.remove('hidden');
-                zoomOutBanner.classList.add('hidden');
-            } else {
-                activeBanner.classList.add('hidden');
-                zoomOutBanner.classList.remove('hidden');
-            }
-        }
-
+        // --- 8. Debounced Viewport Grid & Claimed Territory Renderer ---
         function scheduleMapRender() {
-            clearTimeout(renderDebounceTimer);
+            if (renderDebounceTimer) clearTimeout(renderDebounceTimer);
             renderDebounceTimer = setTimeout(() => {
                 renderViewportGridAndTerritories();
-            }, 90);
+            }, 120);
         }
 
-        // --- 8. Viewport-Culled 1m x 1m Grid & Claimed Territories Renderer ---
         function renderViewportGridAndTerritories() {
-            if (!map) return;
             gridLayerGroup.clearLayers();
             ownedLayerGroup.clearLayers();
 
@@ -701,71 +678,75 @@
             const north = bounds.getNorth();
             const west = bounds.getWest();
             const east = bounds.getEast();
-            const centerLat = map.getCenter().lat;
 
-            // 1. Render 1m x 1m Grid Lines when zoomed in (>= 18)
+            // 1. Render 1m x 1m Grid lines when zoomed in >= 18
             if (zoom >= GRID_MIN_ZOOM) {
-                const { latStep, lngStep } = getGridStepDegrees(centerLat);
-                const minLatIdx = Math.floor(south / latStep);
-                const maxLatIdx = Math.ceil(north / latStep);
-                const minLngIdx = Math.floor(west / lngStep);
-                const maxLngIdx = Math.ceil(east / lngStep);
+                const centerLat = map.getCenter().lat;
+                const metersPerDegLng = getMetersPerDegreeLng(centerLat);
+
+                const minLatIdx = Math.floor(south * METERS_PER_DEGREE_LAT);
+                const maxLatIdx = Math.ceil(north * METERS_PER_DEGREE_LAT);
+                const minLngIdx = Math.floor(west * metersPerDegLng);
+                const maxLngIdx = Math.ceil(east * metersPerDegLng);
 
                 const totalCells = (maxLatIdx - minLatIdx) * (maxLngIdx - minLngIdx);
+
                 if (totalCells <= MAX_RENDERED_CELLS) {
                     const lineStyle = {
-                        color: isSatelliteMode ? 'rgba(255, 255, 255, 0.32)' : 'rgba(15, 23, 42, 0.25)',
+                        color: 'rgba(15, 23, 42, 0.24)',
                         weight: 1,
                         interactive: false
                     };
 
                     for (let i = minLatIdx; i <= maxLatIdx; i++) {
-                        const lat = i * latStep;
-                        L.polyline([[lat, west], [lat, east]], lineStyle).addTo(gridLayerGroup);
+                        const latLine = i / METERS_PER_DEGREE_LAT;
+                        L.polyline([[latLine, west], [latLine, east]], lineStyle).addTo(gridLayerGroup);
                     }
+
                     for (let j = minLngIdx; j <= maxLngIdx; j++) {
-                        const lng = j * lngStep;
-                        L.polyline([[south, lng], [north, lng]], lineStyle).addTo(gridLayerGroup);
+                        const lngLine = j / metersPerDegLng;
+                        L.polyline([[south, lngLine], [north, lngLine]], lineStyle).addTo(gridLayerGroup);
                     }
                 }
             }
 
-            // 2. Render Claimed Territories inside or near current viewport
+            // 2. Render Claimed Territories inside or near current viewport (with Smart Cluster Label Merging)
+            const visibleCells = {};
             Object.entries(territories).forEach(([cellId, data]) => {
                 if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') return;
 
-                // Quick viewport culling check
                 if (data.lat < south - 0.01 || data.lat > north + 0.01 || data.lng < west - 0.01 || data.lng > east + 0.01) {
                     return;
                 }
 
                 if (zoom >= 16) {
-                    const rectBounds = (typeof data.latIndex === 'number' && typeof data.lngIndex === 'number')
-                        ? gridIndicesToBounds(data.latIndex, data.lngIndex, data.lat)
-                        : latLngToGridCell(data.lat, data.lng).bounds;
+                    const cellIndices = (typeof data.latIndex === 'number' && typeof data.lngIndex === 'number')
+                        ? { latIndex: data.latIndex, lngIndex: data.lngIndex }
+                        : latLngToGridCell(data.lat, data.lng);
+                    const gridKey = `${cellIndices.latIndex}_${cellIndices.lngIndex}`;
+
+                    visibleCells[gridKey] = {
+                        cellId,
+                        data,
+                        latIndex: cellIndices.latIndex,
+                        lngIndex: cellIndices.lngIndex
+                    };
+
+                    const rectBounds = gridIndicesToBounds(cellIndices.latIndex, cellIndices.lngIndex, data.lat);
 
                     const rect = L.rectangle(rectBounds, {
-                        color: '#ffffff',
-                        weight: 1.5,
+                        color: 'rgba(255, 255, 255, 0.45)',
+                        weight: 1,
                         fillColor: data.color || '#ef4444',
                         fillOpacity: 0.68
                     }).addTo(ownedLayerGroup);
 
-                    const labelText = `${escapeHTML(data.owner)}의 땅!`;
-                    if (zoom >= 19) {
-                        rect.bindTooltip(labelText, {
-                            permanent: true,
-                            direction: 'top',
-                            className: 'territory-label',
-                            offset: [0, -2]
-                        });
-                    } else {
-                        rect.bindTooltip(labelText, {
-                            permanent: false,
-                            direction: 'top',
-                            className: 'territory-label'
-                        });
-                    }
+                    // Hover tooltip for individual cell inspection
+                    rect.bindTooltip(`${escapeHTML(data.owner)}의 땅!`, {
+                        permanent: false,
+                        direction: 'top',
+                        className: 'territory-label'
+                    });
 
                     rect.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
@@ -791,6 +772,69 @@
                     });
                 }
             });
+
+            // 3. Group adjacent same-owner cells (BFS) so only ONE clean label appears per connected territory cluster
+            if (zoom >= 18) {
+                const visited = new Set();
+                const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+                Object.entries(visibleCells).forEach(([startKey, startNode]) => {
+                    if (visited.has(startKey)) return;
+
+                    const owner = startNode.data.owner;
+                    const cluster = [];
+                    const queue = [startNode];
+                    visited.add(startKey);
+
+                    while (queue.length > 0) {
+                        const curr = queue.shift();
+                        cluster.push(curr);
+
+                        for (const [dLat, dLng] of dirs) {
+                            const nKey = `${curr.latIndex + dLat}_${curr.lngIndex + dLng}`;
+                            const neighbor = visibleCells[nKey];
+                            if (neighbor && !visited.has(nKey) && neighbor.data.owner === owner) {
+                                visited.add(nKey);
+                                queue.push(neighbor);
+                            }
+                        }
+                    }
+
+                    // Pick cell closest to cluster geometric center for single clean permanent label
+                    let sumLat = 0;
+                    let sumLng = 0;
+                    cluster.forEach((c) => {
+                        sumLat += c.data.lat;
+                        sumLng += c.data.lng;
+                    });
+                    const avgLat = sumLat / cluster.length;
+                    const avgLng = sumLng / cluster.length;
+
+                    let anchorCell = cluster[0];
+                    let bestDist = Infinity;
+                    cluster.forEach((c) => {
+                        const d = Math.hypot(c.data.lat - avgLat, c.data.lng - avgLng);
+                        if (d < bestDist) {
+                            bestDist = d;
+                            anchorCell = c;
+                        }
+                    });
+
+                    const clusterLabel = cluster.length > 1
+                        ? `${escapeHTML(owner)}의 땅! (${cluster.length}칸)`
+                        : `${escapeHTML(owner)}의 땅!`;
+
+                    L.tooltip({
+                        permanent: true,
+                        direction: 'top',
+                        className: 'territory-label',
+                        offset: [0, -4]
+                    })
+                        .setLatLng([anchorCell.data.lat, anchorCell.data.lng])
+                        .setContent(clusterLabel)
+                        .addTo(ownedLayerGroup);
+                });
+            }
         }
 
         // --- 9. Cell Click Logic: Own Land vs Empty Land vs Escalating Siege Land ---
@@ -800,192 +844,144 @@
                 return;
             }
 
-            const existing = territories[cell.cellId];
-            const pricing = getCellPricingInfo(cell.centerLat, cell.centerLng, existing);
+            const existingLand = territories[cell.id];
+            const costInfo = calculateConquestCost(cell.center[0], cell.center[1], existingLand);
 
             // Case A: Already owned by current player
-            if (existing && existing.owner === playerProfile.nickname) {
-                const conquerCount = existing.conquerCount || 1;
-                const nextDefenseClicks = pricing.baseClicks + conquerCount * SIEGE_INCREMENT_CLICKS;
-
-                document.getElementById('owned-zone-badge').textContent = pricing.landmarkName
-                    ? `유명 명소 · ${pricing.landmarkName}`
+            if (existingLand && existingLand.owner === playerProfile.nickname) {
+                const nextSiegeCost = costInfo.targetClicks;
+                document.getElementById('owned-zone-badge').textContent = costInfo.zoneInfo
+                    ? `내 영토 · ${costInfo.zoneInfo.name}`
                     : '내 소유의 영토';
-                document.getElementById('owned-title').textContent = `[${existing.owner}]의 땅!`;
-                document.getElementById('owned-coords').textContent = `${cell.centerLat.toFixed(6)}, ${cell.centerLng.toFixed(6)}`;
-                document.getElementById('owned-defense-value').textContent =
-                    `현재 적 침공 방어력: ${nextDefenseClicks}클릭 (누적 점령 ${conquerCount}회)`;
-                const dateStr = existing.claimedAt
-                    ? new Date(existing.claimedAt).toLocaleString('ko-KR')
-                    : '방금 전';
-                document.getElementById('owned-timestamp').textContent = `점령 시각: ${dateStr}`;
+                document.getElementById('owned-title').textContent = `${existingLand.owner}의 땅!`;
+                document.getElementById('owned-coords').textContent = `${cell.center[0].toFixed(6)}, ${cell.center[1].toFixed(6)}`;
+                document.getElementById('owned-defense-value').textContent = `적 침략 시 방어력: ${nextSiegeCost}클릭 (쟁탈 ${costInfo.conquerCount}회)`;
+                document.getElementById('owned-timestamp').textContent = `점령 시각: ${existingLand.claimedAt || '방금 전'}`;
                 document.getElementById('owned-modal').classList.remove('hidden');
                 return;
             }
 
-            // Case B: Empty land or Rival's land with escalating price
+            // Case B: Empty land OR Rival player's land (Siege with escalating cost)
             activeMission = {
-                cellId: cell.cellId,
-                latIndex: cell.latIndex,
-                lngIndex: cell.lngIndex,
-                centerLat: cell.centerLat,
-                centerLng: cell.centerLng,
-                currentClicks: 0,
-                targetClicks: pricing.targetClicks,
-                nextConquerCount: pricing.nextConquerCount,
-                landmarkName: pricing.landmarkName,
-                isSiege: pricing.isSiege,
+                cell,
+                clicks: 0,
+                target: costInfo.targetClicks,
+                isSiege: costInfo.isSiege,
+                zoneInfo: costInfo.zoneInfo,
                 lastClickTime: 0
             };
 
-            openMissionModal(existing, pricing);
-        }
-
-        function openMissionModal(existingOwnerData, pricing) {
-            const modal = document.getElementById('mission-modal');
             const card = document.getElementById('mission-modal-card');
             const header = document.getElementById('mission-modal-header');
             const subtitle = document.getElementById('mission-subtitle');
             const title = document.getElementById('mission-title');
-            const ownerEl = document.getElementById('mission-current-owner');
-            const defenseInfoEl = document.getElementById('mission-defense-info');
-            const zoneBadgeEl = document.getElementById('mission-zone-badge');
-            const sublabel = document.getElementById('btn-mission-sublabel');
+            const ownerText = document.getElementById('mission-current-owner');
+            const defenseInfo = document.getElementById('mission-defense-info');
+            const zoneBadge = document.getElementById('mission-zone-badge');
 
-            document.getElementById('mission-coords').textContent = `${activeMission.centerLat.toFixed(6)}, ${activeMission.centerLng.toFixed(6)}`;
-            document.getElementById('click-count').textContent = '0';
-            document.getElementById('target-click-count').textContent = String(activeMission.targetClicks);
-            document.getElementById('click-progress-bar').style.width = '0%';
-            document.getElementById('mission-player-preview').textContent = `[${playerProfile.nickname}]의 땅!`;
-
-            if (pricing.landmarkName) {
-                zoneBadgeEl.textContent = pricing.landmarkName;
-                zoneBadgeEl.classList.remove('hidden');
+            if (costInfo.zoneInfo) {
+                zoneBadge.textContent = `${costInfo.zoneInfo.name} (기본 150)`;
+                zoneBadge.classList.remove('hidden');
             } else {
-                zoneBadgeEl.classList.add('hidden');
+                zoneBadge.classList.add('hidden');
             }
 
-            if (activeMission.isSiege) {
-                card.classList.remove('border-indigo-500', 'border-amber-500');
-                card.classList.add('border-rose-500');
-                header.classList.remove('bg-indigo-600', 'bg-amber-600');
-                header.classList.add('bg-rose-600');
-                subtitle.textContent = `적 영토 공성전 (${pricing.prevConquerCount}회 쟁탈된 땅)`;
-                title.textContent = `${activeMission.targetClicks}번 클릭해서 뺏기!`;
-                ownerEl.textContent = `현재 주인: [${existingOwnerData.owner}]의 땅!`;
-                ownerEl.className = 'text-xs font-extrabold text-rose-600 mt-1';
-                defenseInfoEl.textContent = `기본 ${pricing.baseClicks} + 공성 할증(${pricing.prevConquerCount}회 × 50) = ${activeMission.targetClicks}클릭`;
-                sublabel.textContent = `여기를 ${activeMission.targetClicks}번 클릭`;
-            } else if (pricing.landmarkName) {
-                card.classList.remove('border-indigo-500', 'border-rose-500');
-                card.classList.add('border-amber-500');
-                header.classList.remove('bg-indigo-600', 'bg-rose-600');
-                header.classList.add('bg-amber-600');
-                subtitle.textContent = '유명 랜드마크 특구 점령전';
-                title.textContent = `${activeMission.targetClicks}번 클릭하기`;
-                ownerEl.textContent = '현재 주인: 무주지 (유명 명소 보호 구역)';
-                ownerEl.className = 'text-xs font-extrabold text-amber-600 mt-1';
-                defenseInfoEl.textContent = `유명 지역 기본 난이도: ${activeMission.targetClicks}클릭`;
-                sublabel.textContent = `여기를 ${activeMission.targetClicks}번 클릭`;
+            if (costInfo.isSiege) {
+                card.className = 'bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border-4 border-rose-500 relative';
+                header.className = 'bg-rose-600 p-4 text-white flex justify-between items-center';
+                subtitle.textContent = `영토 쟁탈 공성전 (누적 ${costInfo.conquerCount}회 쟁탈됨)`;
+                subtitle.className = 'text-[11px] font-bold uppercase tracking-wider text-rose-200';
+                title.textContent = `${costInfo.targetClicks}번 클릭해서 뺏기!`;
+                ownerText.textContent = `현재 주인: ${existingLand.owner}의 땅!`;
+                ownerText.className = 'text-xs font-extrabold text-rose-600 mt-1';
+                defenseInfo.textContent = `기본 ${costInfo.baseClicks} + 공성 할증 ${costInfo.conquerCount * SIEGE_INCREMENT_CLICKS} = ${costInfo.targetClicks}클릭`;
             } else {
-                card.classList.remove('border-rose-500', 'border-amber-500');
-                card.classList.add('border-indigo-500');
-                header.classList.remove('bg-rose-600', 'bg-amber-600');
-                header.classList.add('bg-indigo-600');
-                subtitle.textContent = '1m × 1m 영토 점령전';
-                title.textContent = `${activeMission.targetClicks}번 클릭하기`;
-                ownerEl.textContent = '현재 주인: 무주지 (주인 없음)';
-                ownerEl.className = 'text-xs font-extrabold text-indigo-600 mt-1';
-                defenseInfoEl.textContent = `기본 점령 난이도: ${activeMission.targetClicks}클릭`;
-                sublabel.textContent = `여기를 ${activeMission.targetClicks}번 클릭`;
+                card.className = 'bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border-4 border-indigo-500 relative';
+                header.className = 'bg-indigo-600 p-4 text-white flex justify-between items-center';
+                subtitle.textContent = costInfo.zoneInfo ? '유명 명소 특구 점령전' : '1m × 1m 빈 땅 점령전';
+                subtitle.className = 'text-[11px] font-bold uppercase tracking-wider text-indigo-200';
+                title.textContent = `${costInfo.targetClicks}번 클릭하기`;
+                ownerText.textContent = '현재 주인: 무주지 (주인 없음)';
+                ownerText.className = 'text-xs font-extrabold text-indigo-600 mt-1';
+                defenseInfo.textContent = costInfo.zoneInfo
+                    ? `유명 지역 특구 할증 적용: ${costInfo.targetClicks}클릭`
+                    : `일반 지역 기본 난이도: ${costInfo.targetClicks}클릭`;
             }
 
-            modal.classList.remove('hidden');
+            document.getElementById('mission-coords').textContent = `${cell.center[0].toFixed(6)}, ${cell.center[1].toFixed(6)}`;
+            document.getElementById('mission-player-preview').textContent = `${playerProfile.nickname}의 땅!`;
+            document.getElementById('btn-mission-sublabel').textContent = `여기를 ${costInfo.targetClicks}번 클릭`;
+
+            updateMissionProgressUI();
+            document.getElementById('mission-modal').classList.remove('hidden');
         }
 
-        function spawnFloatingPlus(x, y) {
+        function updateMissionProgressUI() {
+            const pct = Math.min(100, (activeMission.clicks / activeMission.target) * 100);
+            document.getElementById('click-count').textContent = activeMission.clicks;
+            document.getElementById('target-click-count').textContent = activeMission.target;
+            document.getElementById('click-progress-bar').style.width = `${pct}%`;
+        }
+
+        function spawnFloatingPlus(clientX, clientY) {
             const wrapper = document.getElementById('click-zone-wrapper');
             const rect = wrapper.getBoundingClientRect();
-            const span = document.createElement('span');
-            span.textContent = '+1';
-            span.className = 'floating-plus text-amber-500 text-2xl';
-            const offsetX = (Math.random() - 0.5) * 60;
-            span.style.left = `${(x - rect.left || rect.width / 2) + offsetX}px`;
-            span.style.top = `${(y - rect.top || rect.height / 2) - 20}px`;
-            wrapper.appendChild(span);
-            setTimeout(() => span.remove(), 550);
+            const plus = document.createElement('span');
+            plus.textContent = '+1';
+            plus.className = 'floating-plus text-amber-500 text-2xl';
+            const offsetX = clientX ? clientX - rect.left - 12 : rect.width / 2 - 12;
+            const offsetY = clientY ? clientY - rect.top - 16 : rect.height / 2 - 16;
+            plus.style.left = `${offsetX}px`;
+            plus.style.top = `${offsetY}px`;
+            wrapper.appendChild(plus);
+            setTimeout(() => plus.remove(), 550);
         }
 
-        async function handleMissionClick(e) {
-            if (!activeMission.cellId) return;
+        async function completeConquestMission() {
+            const cell = activeMission.cell;
+            if (!cell) return;
 
-            // 1. 키보드(Enter / Space 꾹 누르기) 꼼수 차단: 실제 포인터/마우스 클릭(detail > 0)만 허용
-            if (e && e.detail === 0) {
-                e.preventDefault();
-                return;
-            }
+            playTone('win');
+            document.getElementById('mission-modal').classList.add('hidden');
 
-            // 2. 초고속 오토클릭 매크로 방어 (최소 35ms 간격 = 초당 최대 ~28클릭)
-            const now = performance.now();
-            if (now - activeMission.lastClickTime < 35) {
-                return;
-            }
-            activeMission.lastClickTime = now;
+            const nowStr = new Date().toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
 
-            const btn = document.getElementById('btn-mission-click');
-            if (btn) btn.blur(); // 포커스 즉시 해제로 키보드 연타 원천 차단
+            const existingLand = territories[cell.id];
+            const nextConquerCount = (existingLand ? (Number(existingLand.conquerCount) || 1) : 0) + 1;
 
-            activeMission.currentClicks += 1;
-            playSound('click');
+            const payload = {
+                owner: playerProfile.nickname,
+                color: playerProfile.color,
+                lat: cell.center[0],
+                lng: cell.center[1],
+                latIndex: cell.latIndex,
+                lngIndex: cell.lngIndex,
+                conquerCount: nextConquerCount,
+                claimedAt: nowStr,
+                updatedAt: Date.now()
+            };
 
-            btn.classList.remove('animate-hit');
-            void btn.offsetWidth;
-            btn.classList.add('animate-hit');
+            territories[cell.id] = payload;
+            updatePlayerHUD();
+            updateLeaderboard();
+            scheduleMapRender();
 
-            spawnFloatingPlus(e.clientX, e.clientY);
+            const nextDefenseCost = calculateConquestCost(cell.center[0], cell.center[1], payload).targetClicks;
+            showToast(`점령 성공! [${playerProfile.nickname}의 땅!] (다음 방어력 ${nextDefenseCost}클릭)`);
 
-            const pct = Math.min(100, (activeMission.currentClicks / activeMission.targetClicks) * 100);
-            document.getElementById('click-count').textContent = String(activeMission.currentClicks);
-            document.getElementById('click-progress-bar').style.width = `${pct}%`;
-
-            if (activeMission.currentClicks >= activeMission.targetClicks) {
-                const completedMission = { ...activeMission };
-                activeMission.cellId = null;
-                document.getElementById('mission-modal').classList.add('hidden');
-                playSound('conquer');
-
-                const payload = {
-                    owner: playerProfile.nickname,
-                    color: playerProfile.color,
-                    lat: completedMission.centerLat,
-                    lng: completedMission.centerLng,
-                    latIndex: completedMission.latIndex,
-                    lngIndex: completedMission.lngIndex,
-                    conquerCount: completedMission.nextConquerCount,
-                    lastCostClicks: completedMission.targetClicks,
-                    claimedAt: Date.now()
-                };
-
-                // Optimistic local update
-                territories[completedMission.cellId] = payload;
-                updatePlayerHUD();
-                updateLeaderboard();
-                scheduleMapRender();
-
-                const nextDefense = completedMission.targetClicks + SIEGE_INCREMENT_CLICKS;
-                showToast(`점령 성공! [${playerProfile.nickname}]의 땅! (다음 방어력: ${nextDefense}클릭)`);
-
-                // Push to Firebase Realtime Database
-                try {
-                    await set(ref(db, `territories/${completedMission.cellId}`), payload);
-                } catch (err) {
-                    console.error('Firebase write error:', err);
-                    showToast('서버 저장 중 지연이 발생했습니다. 네트워크를 확인해 주세요.');
-                }
+            try {
+                await set(ref(db, `territories/${cell.id}`), payload);
+            } catch (err) {
+                console.error('Firebase write failed:', err);
+                showToast('서버 동기화 지연: 네트워크 연결을 확인해 주세요.');
             }
         }
 
-        // --- 10. Firebase Realtime Listeners ---
+        // --- 10. Firebase Realtime Database Synchronization ---
         function setupFirebaseSync() {
             const connectedRef = ref(db, '.info/connected');
             onValue(connectedRef, (snap) => {
@@ -996,93 +992,145 @@
                     text.textContent = '실시간 서버 연결됨';
                     text.className = 'text-emerald-300';
                 } else {
-                    dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
-                    text.textContent = '재연결 중...';
-                    text.className = 'text-amber-300';
+                    dot.className = 'w-2 h-2 rounded-full bg-rose-400 animate-pulse';
+                    text.textContent = '서버 재연결 중...';
+                    text.className = 'text-rose-300';
                 }
             });
 
-            // Initial snapshot load
             onValue(territoriesRef, (snapshot) => {
-                const val = snapshot.val() || {};
-                territories = val;
-                initialSyncDone = true;
+                const val = snapshot.val();
+                territories = val ? val : {};
+                isInitialSnapshotLoaded = true;
                 updatePlayerHUD();
                 updateLeaderboard();
                 scheduleMapRender();
-            }, { onlyOnce: true });
+            });
 
-            // Realtime live updates
             onChildAdded(territoriesRef, (snapshot) => {
-                const key = snapshot.key;
+                if (!isInitialSnapshotLoaded) return;
                 const data = snapshot.val();
-                if (!key || !data) return;
-                const isNewLiveEvent = initialSyncDone && !territories[key];
-                territories[key] = data;
-                updatePlayerHUD();
-                updateLeaderboard();
-                scheduleMapRender();
-
-                if (isNewLiveEvent && data.owner !== playerProfile.nickname) {
-                    showToast(`[속보] ${data.owner}님이 새로운 1m×1m 땅을 점령했습니다!`);
+                if (data && data.owner && data.owner !== playerProfile.nickname) {
+                    showToast(`[실시간] ${data.owner}님이 새 땅을 점령했습니다!`);
                 }
             });
 
             onChildChanged(territoriesRef, (snapshot) => {
-                const key = snapshot.key;
+                if (!isInitialSnapshotLoaded) return;
                 const data = snapshot.val();
-                if (!key || !data) return;
-                const prevOwner = territories[key]?.owner;
-                territories[key] = data;
-                updatePlayerHUD();
-                updateLeaderboard();
-                scheduleMapRender();
-
-                if (prevOwner && prevOwner !== data.owner && data.owner !== playerProfile.nickname) {
-                    showToast(`[공성] ${data.owner}님이 ${prevOwner}님의 땅을 빼앗았습니다!`);
+                if (data && data.owner && data.owner !== playerProfile.nickname) {
+                    showToast(`[공성전] ${data.owner}님이 영토를 쟁탈했습니다!`);
                 }
             });
 
             onChildRemoved(territoriesRef, (snapshot) => {
-                const key = snapshot.key;
-                if (key && territories[key]) {
-                    delete territories[key];
-                    updatePlayerHUD();
-                    updateLeaderboard();
-                    scheduleMapRender();
-                }
+                delete territories[snapshot.key];
+                updatePlayerHUD();
+                updateLeaderboard();
+                scheduleMapRender();
             });
         }
 
-        // --- 11. Global Place Search (Nominatim OpenStreetMap Free Geocoder) ---
-        async function searchGlobalPlace(query) {
-            if (!query.trim()) return;
-            showToast(`"${query}" 위치 검색 중...`);
-            try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-                const res = await fetch(url, {
-                    headers: { 'Accept-Language': 'ko,en' }
-                });
-                const results = await res.json();
-                if (results && results.length > 0) {
-                    const lat = parseFloat(results[0].lat);
-                    const lon = parseFloat(results[0].lon);
-                    map.setView([lat, lon], 19);
-                    showToast(`이동 완료: ${results[0].display_name.split(',')[0]}`);
-                } else {
-                    showToast('검색 결과를 찾지 못했습니다. 다른 키워드로 검색해 보세요.');
-                }
-            } catch (err) {
-                showToast('위치 검색 중 일시적인 오류가 발생했습니다.');
+        // --- 11. UI Helpers: HUD, Leaderboard, Search, Toast ---
+        function updateZoomHUD() {
+            const zoom = map.getZoom();
+            document.getElementById('zoom-level-display').textContent = zoom;
+
+            const activeBanner = document.getElementById('banner-active');
+            const zoomOutBanner = document.getElementById('banner-zoom-out');
+
+            if (zoom >= GRID_MIN_ZOOM) {
+                activeBanner.classList.remove('hidden');
+                zoomOutBanner.classList.add('hidden');
+            } else {
+                activeBanner.classList.add('hidden');
+                zoomOutBanner.classList.remove('hidden');
             }
         }
 
-        // --- 12. DOM Event Bindings ---
+        function updatePlayerHUD() {
+            const nick = playerProfile.nickname || '플레이어';
+            document.getElementById('hud-nickname').textContent = nick;
+
+            const badge = document.getElementById('player-color-badge');
+            badge.style.backgroundColor = playerProfile.color;
+            badge.textContent = nick.charAt(0).toUpperCase();
+
+            const myCount = Object.values(territories).filter((t) => t && t.owner === nick).length;
+            document.getElementById('hud-land-count').textContent = myCount;
+        }
+
+        function updateLeaderboard() {
+            const allLands = Object.values(territories).filter((t) => t && t.owner);
+            document.getElementById('total-global-lands').textContent = allLands.length;
+
+            const statsMap = {};
+            allLands.forEach((land) => {
+                if (!statsMap[land.owner]) {
+                    statsMap[land.owner] = { owner: land.owner, color: land.color || '#ef4444', count: 0 };
+                }
+                statsMap[land.owner].count += 1;
+                statsMap[land.owner].color = land.color || statsMap[land.owner].color;
+            });
+
+            const sorted = Object.values(statsMap).sort((a, b) => b.count - a.count).slice(0, 5);
+            const listEl = document.getElementById('leaderboard-list');
+
+            if (sorted.length === 0) {
+                listEl.innerHTML = '<li class="text-slate-400 text-center py-2">아직 점령된 땅이 없습니다.</li>';
+                return;
+            }
+
+            listEl.innerHTML = sorted.map((item, idx) => {
+                const isMe = item.owner === playerProfile.nickname;
+                return `
+                    <li class="flex items-center justify-between px-2.5 py-1.5 rounded-xl ${isMe ? 'bg-amber-500/20 border border-amber-400/50' : 'bg-slate-800/80'}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="font-extrabold text-amber-400 w-4 shrink-0">${idx + 1}위</span>
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${escapeHTML(item.color)}"></span>
+                            <span class="font-bold truncate ${isMe ? 'text-amber-300' : 'text-slate-200'}">${escapeHTML(item.owner)}</span>
+                        </div>
+                        <span class="font-extrabold text-emerald-400 shrink-0 ml-2">${item.count}칸</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        let toastTimer = null;
+        function showToast(message) {
+            const toast = document.getElementById('toast-msg');
+            toast.textContent = message;
+            toast.classList.remove('hidden');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2800);
+        }
+
+        async function searchGlobalPlace(query) {
+            if (!query) return;
+            showToast(`'${query}' 위치 검색 중...`);
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+                const res = await fetch(url, { headers: { 'Accept-Language': 'ko,en' } });
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+                    map.setView([lat, lng], 19);
+                    showToast(`${data[0].display_name.split(',')[0]} 이동 완료!`);
+                } else {
+                    showToast('검색 결과를 찾을 수 없습니다.');
+                }
+            } catch (e) {
+                showToast('장소 검색 중 네트워크 오류가 발생했습니다.');
+            }
+        }
+
+        // --- 12. DOM Event Listeners ---
         function bindEvents() {
-            // Color selection in Nickname Modal
-            let selectedColor = playerProfile.color;
-            const colorButtons = document.querySelectorAll('.color-btn');
-            colorButtons.forEach((btn) => {
+            // Color Selection Buttons
+            document.querySelectorAll('.color-btn').forEach((btn) => {
                 if (btn.dataset.color === selectedColor) {
                     btn.classList.add('ring-4', 'ring-offset-2', 'ring-slate-800');
                 } else {
@@ -1090,33 +1138,72 @@
                 }
 
                 btn.addEventListener('click', () => {
-                    selectedColor = btn.dataset.color;
-                    colorButtons.forEach((b) => b.classList.remove('ring-4', 'ring-offset-2', 'ring-slate-800'));
+                    document.querySelectorAll('.color-btn').forEach((b) =>
+                        b.classList.remove('ring-4', 'ring-offset-2', 'ring-slate-800')
+                    );
                     btn.classList.add('ring-4', 'ring-offset-2', 'ring-slate-800');
+                    selectedColor = btn.dataset.color;
                 });
             });
 
-            // Nickname Submit
-            document.getElementById('nickname-form').addEventListener('submit', (e) => {
+            // Nickname + Password Auth Submit
+            document.getElementById('nickname-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const input = document.getElementById('input-nickname');
-                const nick = input.value.trim();
-                if (!nick) return;
+                const nickInput = document.getElementById('input-nickname');
+                const passInput = document.getElementById('input-password');
+                const errorBox = document.getElementById('auth-error-box');
+                const submitBtn = document.getElementById('btn-auth-submit');
 
-                playerProfile.nickname = nick;
-                playerProfile.color = selectedColor;
-                localStorage.setItem('wc_nickname', nick);
-                localStorage.setItem('wc_color', selectedColor);
+                const nick = nickInput.value.trim();
+                const pass = passInput.value;
+                if (!nick || pass.length < 4) return;
 
-                document.getElementById('nickname-modal').classList.add('hidden');
-                updatePlayerHUD();
-                updateLeaderboard();
-                showToast(`환영합니다, ${nick}님! 원하는 1m×1m 칸을 눌러 점령하세요.`);
+                errorBox.classList.add('hidden');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '계정 확인 중...';
+
+                try {
+                    const result = await authenticatePlayer(nick, pass, selectedColor, false);
+                    if (!result.ok) {
+                        errorBox.textContent = result.reason;
+                        errorBox.classList.remove('hidden');
+                        return;
+                    }
+
+                    playerProfile.nickname = nick;
+                    playerProfile.color = selectedColor;
+                    playerProfile.passHash = result.passHash;
+
+                    localStorage.setItem('wc_nickname', nick);
+                    localStorage.setItem('wc_color', selectedColor);
+                    localStorage.setItem('wc_pass_hash', result.passHash);
+                    localStorage.setItem('wc_pass_raw', pass);
+
+                    document.getElementById('nickname-modal').classList.add('hidden');
+                    updatePlayerHUD();
+                    updateLeaderboard();
+                    scheduleMapRender();
+
+                    showToast(
+                        result.isNew
+                            ? `새 정복자 등록 완료! 환영합니다, ${nick}님!`
+                            : `본인 인증 완료! 다시 오신 걸 환영합니다, ${nick}님!`
+                    );
+                } catch (err) {
+                    console.error('Auth error:', err);
+                    errorBox.textContent = '서버 인증 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+                    errorBox.classList.remove('hidden');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '실시간 게임 입장하기';
+                }
             });
 
             // Open Settings Modal
             document.getElementById('btn-open-settings').addEventListener('click', () => {
                 document.getElementById('input-nickname').value = playerProfile.nickname;
+                document.getElementById('input-password').value = localStorage.getItem('wc_pass_raw') || '';
+                document.getElementById('auth-error-box').classList.add('hidden');
                 document.getElementById('nickname-modal').classList.remove('hidden');
             });
 
@@ -1125,109 +1212,145 @@
                 soundEnabled = !soundEnabled;
                 document.getElementById('icon-sound-on').classList.toggle('hidden', !soundEnabled);
                 document.getElementById('icon-sound-off').classList.toggle('hidden', soundEnabled);
-                showToast(soundEnabled ? '효과음이 켜졌습니다.' : '효과음이 꺼졌습니다.');
+                showToast(soundEnabled ? '효과음 켜짐' : '효과음 꺼짐');
             });
 
-            // Jump to My Land
+            // Jump to My Latest Claimed Land
             document.getElementById('btn-jump-my-land').addEventListener('click', () => {
-                const myLands = Object.values(territories).filter((t) => t && t.owner === playerProfile.nickname);
+                const myLands = Object.values(territories)
+                    .filter((t) => t && t.owner === playerProfile.nickname)
+                    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
                 if (myLands.length === 0) {
-                    showToast('아직 점령한 내 땅이 없습니다! 지도를 클릭해 첫 땅을 점령해 보세요.');
+                    showToast('아직 점령한 영토가 없습니다. 땅을 클릭해 점령해 보세요!');
                     return;
                 }
-                const latest = myLands.sort((a, b) => (b.claimedAt || 0) - (a.claimedAt || 0))[0];
-                map.setView([latest.lat, latest.lng], 20);
-                showToast('내 최신 점령 영토로 이동했습니다!');
+                map.setView([myLands[0].lat, myLands[0].lng], 19);
+                showToast('내 영토로 이동했습니다!');
             });
 
-            // Global Search Form
+            // Global Place Search Form
             document.getElementById('search-form').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const q = document.getElementById('input-search-place').value;
+                const q = document.getElementById('input-search-place').value.trim();
                 searchGlobalPlace(q);
             });
 
-            // Preset Landmarks Dropdown
+            // Quick Teleport Preset Selector
             document.getElementById('location-select').addEventListener('change', (e) => {
-                const [lat, lng, zoom] = e.target.value.split(',').map(Number);
-                map.setView([lat, lng], zoom || 19);
+                const [lat, lng, z] = e.target.value.split(',').map(Number);
+                map.setView([lat, lng], z);
             });
 
-            // GPS My Location
+            // Toggle Street Map <-> Satellite Map
+            document.getElementById('btn-toggle-map-style').addEventListener('click', () => {
+                isSatelliteMode = !isSatelliteMode;
+                if (activeTileLayer) {
+                    map.removeLayer(activeTileLayer);
+                }
+                activeTileLayer = createBaseTileLayer(isSatelliteMode).addTo(map);
+                document.getElementById('map-style-label').textContent = isSatelliteMode ? '위성지도' : '일반지도';
+                showToast(isSatelliteMode ? '고해상도 위성지도로 전환했습니다.' : '일반 도로 지도로 전환했습니다.');
+            });
+
+            // My GPS Location
             document.getElementById('btn-my-location').addEventListener('click', () => {
                 if (!navigator.geolocation) {
-                    showToast('이 브라우저에서는 위치 정보(GPS)를 지원하지 않습니다.');
+                    showToast('이 브라우저에서는 위치 기능을 지원하지 않습니다.');
                     return;
                 }
                 showToast('현재 GPS 위치를 찾는 중...');
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         map.setView([pos.coords.latitude, pos.coords.longitude], 19);
-                        showToast('현재 내 위치로 이동했습니다!');
+                        showToast('내 현재 위치로 이동했습니다!');
                     },
                     () => {
-                        showToast('위치 권한이 차단되었거나 위치를 가져올 수 없습니다.');
+                        showToast('위치 권한이 거부되었거나 찾을 수 없습니다.');
                     },
-                    { enableHighAccuracy: true, timeout: 8000 }
+                    { enableHighAccuracy: true, timeout: 7000 }
                 );
             });
 
-            // Toggle Satellite vs Street Map
-            document.getElementById('btn-toggle-map-style').addEventListener('click', (e) => {
-                isSatelliteMode = !isSatelliteMode;
-                const labelEl = document.getElementById('map-style-label');
-                if (isSatelliteMode) {
-                    map.removeLayer(streetTileLayer);
-                    satelliteLayerGroup.addTo(map);
-                    labelEl.textContent = '일반지도';
-                    e.currentTarget.classList.replace('bg-emerald-600', 'bg-amber-600');
-                    e.currentTarget.classList.replace('hover:bg-emerald-500', 'hover:bg-amber-500');
-                    showToast('전 세계 고해상도 위성지도로 전환되었습니다.');
-                } else {
-                    map.removeLayer(satelliteLayerGroup);
-                    streetTileLayer.addTo(map);
-                    labelEl.textContent = '위성지도';
-                    e.currentTarget.classList.replace('bg-amber-600', 'bg-emerald-600');
-                    e.currentTarget.classList.replace('hover:bg-amber-500', 'hover:bg-emerald-500');
-                    showToast('일반 도로 지도로 전환되었습니다.');
-                }
-                scheduleMapRender();
-            });
-
-            // Zoom In Now Button
+            // Zoom In Helper Button
             document.getElementById('btn-zoom-in-now').addEventListener('click', () => {
                 map.setZoom(19);
             });
 
-            // Mission Modal Click & Close
-            const missionClickBtn = document.getElementById('btn-mission-click');
-            missionClickBtn.addEventListener('click', handleMissionClick);
-            missionClickBtn.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+            // Mission Clicker Button (Anti-Key-Hold & Anti-AutoClicker Protected)
+            const missionBtn = document.getElementById('btn-mission-click');
+            missionBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ' || e.code === 'Space') {
                     e.preventDefault();
+                    e.stopPropagation();
                 }
             });
+
+            missionBtn.addEventListener('click', (e) => {
+                // 키보드 Enter/Space 연타 꼼수 차단 (마우스/터치 실제 클릭만 detail >= 1)
+                if (!e.isTrusted || e.detail === 0) {
+                    missionBtn.blur();
+                    return;
+                }
+
+                // 비정상 초고속 매크로 방지 (최소 35ms 간격)
+                const now = performance.now();
+                if (now - activeMission.lastClickTime < 35) {
+                    return;
+                }
+                activeMission.lastClickTime = now;
+                missionBtn.blur();
+
+                if (activeMission.clicks >= activeMission.target) return;
+
+                activeMission.clicks += 1;
+                playTone('click');
+                updateMissionProgressUI();
+                spawnFloatingPlus(e.clientX, e.clientY);
+
+                missionBtn.classList.remove('animate-hit');
+                void missionBtn.offsetWidth;
+                missionBtn.classList.add('animate-hit');
+
+                if (activeMission.clicks >= activeMission.target) {
+                    setTimeout(() => {
+                        completeConquestMission();
+                    }, 90);
+                }
+            });
+
+            // Close Modals
             document.getElementById('btn-close-mission').addEventListener('click', () => {
-                activeMission.cellId = null;
                 document.getElementById('mission-modal').classList.add('hidden');
             });
 
-            // Owned Modal Close
             document.getElementById('btn-close-owned').addEventListener('click', () => {
                 document.getElementById('owned-modal').classList.add('hidden');
             });
         }
 
         // --- 13. Boot Application ---
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             initMap();
             bindEvents();
             setupFirebaseSync();
 
-            if (playerProfile.nickname) {
+            const savedRawPass = localStorage.getItem('wc_pass_raw');
+            if (playerProfile.nickname && savedRawPass) {
                 document.getElementById('input-nickname').value = playerProfile.nickname;
-                document.getElementById('nickname-modal').classList.add('hidden');
-                updatePlayerHUD();
+                document.getElementById('input-password').value = savedRawPass;
+                try {
+                    const autoRes = await authenticatePlayer(playerProfile.nickname, savedRawPass, playerProfile.color, true);
+                    if (autoRes.ok) {
+                        document.getElementById('nickname-modal').classList.add('hidden');
+                        updatePlayerHUD();
+                        return;
+                    }
+                } catch (e) {
+                    // Fallback to manual login modal if verification fails
+                }
+            } else if (playerProfile.nickname) {
+                document.getElementById('input-nickname').value = playerProfile.nickname;
             }
         });
     </script>
