@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>클릭땅 (ClickLand) - 전 세계 1m × 1m 실시간 땅따먹기</title>
+    <title>클릭땅 (ClickLand) - 전 세계 5m × 5m 실시간 땅따먹기</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS & JS -->
@@ -140,7 +140,7 @@
                 <button id="btn-toggle-sound" title="효과음 켜기/끄기" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-base transition cursor-pointer">
                     🔊
                 </button>
-                <button id="btn-open-settings" title="프로필 / 색상 변경" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-base transition cursor-pointer">
+                <button id="btn-open-settings" title="로그인 / 계정 전환" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-base transition cursor-pointer">
                     ⚙️
                 </button>
             </div>
@@ -197,12 +197,12 @@
         ⚔️ 실시간 알림
     </div>
 
-    <!-- Zoom Prompt Banner (Shown when zoom < 18) -->
+    <!-- Zoom Prompt Banner (Shown when zoom < 17) -->
     <div id="zoom-prompt-banner" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] bg-rose-600/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl border-2 border-rose-300/60 text-center max-w-xs w-[90%]">
-        <div class="font-game text-base mb-1.5">확대하면 1m × 1m 격자가 나타납니다</div>
+        <div class="font-game text-base mb-1.5">확대하면 5m × 5m 격자가 나타납니다</div>
         <div class="text-[11px] text-rose-100 mb-2">줌 22 미만에서는 점령 색상만 깔끔하게 표시됩니다</div>
         <button id="btn-auto-zoom-in" class="w-full py-2 px-4 rounded-xl bg-white text-rose-600 font-extrabold text-xs shadow hover:bg-rose-50 active:scale-95 transition cursor-pointer">
-            1m × 1m 그리드 크기로 바로 확대하기
+            5m × 5m 그리드 크기로 바로 확대하기
         </button>
     </div>
 
@@ -218,7 +218,7 @@
                         🏛️ 유명 명소 특구
                     </span>
                 </div>
-                <h3 id="panel-title" class="font-game text-lg text-white mt-1">1m × 1m 구역 점령전</h3>
+                <h3 id="panel-title" class="font-game text-lg text-white mt-1">5m × 5m 구역 점령전</h3>
                 <p id="panel-coords" class="text-[11px] text-slate-400 font-mono">37.514500, 126.804500</p>
             </div>
             <button id="btn-close-panel" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm flex items-center justify-center cursor-pointer">
@@ -230,18 +230,18 @@
         <div class="bg-slate-800 rounded-2xl p-3 border border-slate-700 mb-3">
             <div class="flex items-center justify-between text-xs font-extrabold mb-1.5">
                 <span class="text-slate-300">점령 게이지</span>
-                <span id="panel-progress-text" class="text-amber-300 text-sm">0 / 50 클릭</span>
+                <span id="panel-progress-text" class="text-amber-300 text-sm">0 / 50 클릭 (0%)</span>
             </div>
             <div class="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-700">
                 <div id="panel-progress-bar" class="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-100 rounded-full" style="width: 0%;"></div>
             </div>
-            <div class="flex items-center justify-between text-[11px] text-slate-400 mt-1.5">
-                <span id="panel-siege-info">누적 공성 할증: 0회 (+0클릭)</span>
-                <span>1m × 1m</span>
+            <div id="panel-siege-info" class="text-[11px] text-slate-400 mt-1.5">
+                누적 공성 할증: 0회 (+0클릭)
             </div>
         </div>
 
-        <button id="btn-click-conquer" type="button" class="btn-pulse w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 active:scale-95 text-white font-game text-lg shadow-lg shadow-orange-500/30 transition cursor-pointer">
+        <!-- Click Attack Button -->
+        <button id="btn-click-conquer" type="button" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-game text-xl shadow-lg shadow-orange-500/30 transition cursor-pointer btn-pulse">
             👆 광클해서 점령하기!
         </button>
     </div>
@@ -331,7 +331,7 @@
         // --- 2. Global Game State & Constants ---
         const DEFAULT_LAT = 37.5145;
         const DEFAULT_LNG = 126.8045;
-        const GRID_MIN_ZOOM = 18;
+        const GRID_MIN_ZOOM = 17; // 5m × 5m 격자 표시 최소 줌 레벨
         const LABEL_MIN_ZOOM = 22; // 줌 22 미만에서는 '~~의 땅!' 라벨을 숨기고 영토 색상만 표시
         const MAX_RENDERED_CELLS = 1800;
         const SIEGE_INCREMENT_CLICKS = 50; // 뺏길 때마다 추가되는 클릭 수
@@ -489,11 +489,9 @@
                 if (existing.passHash !== passHash) {
                     return { ok: false, error: '비밀번호가 일치하지 않습니다.' };
                 }
-                // 로그인 시 기존에 사용하던 영토 색상을 그대로 유지
                 const preservedColor = existing.color || chosenColor || pickRandomColor();
                 return { ok: true, passHash, color: preservedColor };
             } else {
-                // 회원가입 모드
                 if (snapshot.exists()) {
                     return { ok: false, error: '이미 사용 중인 닉네임입니다. 다른 닉네임을 입력하거나 [🔑 로그인] 해주세요.' };
                 }
@@ -543,8 +541,8 @@
             setTimeout(() => playTone(1046.5, 'triangle', 0.28, 0.22), 270);
         }
 
-        // --- 5. 1m × 1m Grid Math & Landmark / Siege Pricing ---
-        const LAT_STEP = 0.000009; // ~1.00 meter in latitude
+        // --- 5. 5m × 5m Grid Math & Landmark / Siege Pricing ---
+        const LAT_STEP = 0.000045; // ~5.00 meters in latitude (5m × 5m grid)
 
         function getLngStep(lat) {
             const cosLat = Math.max(0.15, Math.cos((lat * Math.PI) / 180));
@@ -649,7 +647,6 @@
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            // 지도는 줌 레벨과 무관하게 항상 그대로 유지됨
             activeTileLayer = createBaseTileLayer(false).addTo(map);
 
             ownedLayerGroup = L.layerGroup().addTo(map);
@@ -671,10 +668,12 @@
             if (badge) badge.textContent = `줌 ${zoom}`;
 
             const promptBanner = document.getElementById('zoom-prompt-banner');
-            if (zoom < GRID_MIN_ZOOM) {
-                promptBanner.classList.remove('hidden');
-            } else {
-                promptBanner.classList.add('hidden');
+            if (promptBanner) {
+                if (zoom < GRID_MIN_ZOOM) {
+                    promptBanner.classList.remove('hidden');
+                } else {
+                    promptBanner.classList.add('hidden');
+                }
             }
         }
 
@@ -731,7 +730,6 @@
                     }
                 }
 
-                // 대표 라벨 위치 계산 (덩어리의 평균 좌표와 가장 가까운 실제 칸)
                 let sumLat = 0;
                 let sumLng = 0;
                 members.forEach(m => {
@@ -831,7 +829,6 @@
                         fillOpacity: 0.92
                     }).addTo(ownedLayerGroup);
 
-                    // 줌 22 미만에서는 '~~의 땅!' 말풍선을 아예 표시하지 않음
                     marker.on('click', () => {
                         map.setView([data.lat, data.lng], 22);
                     });
@@ -866,7 +863,7 @@
 
                 for (let c = rMinCol; c <= rMaxCol; c++) {
                     const cellId = `${r}_${c}`;
-                    if (territories[cellId]) continue; // 이미 점령된 칸은 위에서 렌더링함
+                    if (territories[cellId]) continue;
 
                     const cellWest = c * rowLngStep;
                     const cellEast = (c + 1) * rowLngStep;
@@ -1307,13 +1304,13 @@
                     return;
                 }
                 const target = myLands[myLands.length - 1];
-                map.setView([target.lat, target.lng], 19);
+                map.setView([target.lat, target.lng], 18);
                 showToast('👑 내 영토로 이동했습니다!');
             });
 
             // Auto Zoom In to Grid Level
             document.getElementById('btn-auto-zoom-in').addEventListener('click', () => {
-                map.setZoom(19);
+                map.setZoom(18);
             });
 
             // Close Conquest Panel
@@ -1326,7 +1323,6 @@
             // Conquest Click Button (Anti-keyboard hold & macro guard)
             const attackBtn = document.getElementById('btn-click-conquer');
             attackBtn.addEventListener('click', async (e) => {
-                // 키보드 Enter / Space 꾹 누르기 꼼수 차단 (마우스/터치 실제 클릭만 e.detail > 0)
                 if (e.detail === 0) {
                     e.preventDefault();
                     attackBtn.blur();
@@ -1334,7 +1330,6 @@
                 }
                 attackBtn.blur();
 
-                // 비정상 초고속 오토클릭 방어 (최소 35ms 간격)
                 const now = Date.now();
                 if (now - lastValidClickTime < 35) return;
                 lastValidClickTime = now;
@@ -1363,7 +1358,6 @@
             bindEvents();
             setupFirebaseSync();
 
-            // 이미 저장된 프로필이 있으면 자동 복원 후 모달 닫기
             if (playerProfile.nickname && playerProfile.passHash) {
                 document.getElementById('input-nickname').value = playerProfile.nickname;
                 document.getElementById('input-password').value = localStorage.getItem('wc_pass_raw') || '';
