@@ -280,29 +280,90 @@
                         class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:outline-none text-sm font-bold" />
                 </div>
 
-                <div id="auth-error-box" class="hidden bg-rose-50 border border-rose-300 text-rose-600 text-xs font-extrabold px-3.5 py-2.5 rounded-xl">
-                    비밀번호가 일치하지 않습니다.
-                </div>
-
-                <!-- Color Picker Section (Shown Only on Signup) -->
-                <div id="signup-color-section" class="hidden bg-slate-100 rounded-2xl p-3.5 border border-slate-200 flex items-center justify-between">
+                <!-- Signup Random HEX Color Picker Section -->
+                <div id="signup-color-section" class="hidden bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-xs font-extrabold text-slate-700">내 영토 고유 색상 (완전 랜덤 HEX)</span>
+                        <button type="button" id="btn-reroll-color" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold transition cursor-pointer">
+                            🎲 다시 뽑기
+                        </button>
+                    </div>
                     <div class="flex items-center gap-2.5">
-                        <span id="random-color-preview" class="w-8 h-8 rounded-xl shadow-inner border-2 border-white bg-red-500"></span>
+                        <div id="random-color-preview" class="w-10 h-10 rounded-xl border-2 border-white shadow-md shrink-0" style="background-color: #ef4444;"></div>
                         <div>
-                            <div class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
-                                <span>랜덤 HEX 색상</span>
-                                <span id="random-color-hex" class="font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border border-slate-300 text-slate-600">#EF4444</span>
-                            </div>
-                            <div class="text-[11px] text-slate-500">1,677만 가지 색상 중 무작위 배정</div>
+                            <div id="random-color-hex" class="font-mono text-xs font-black text-slate-800">#EF4444</div>
+                            <div class="text-[11px] text-slate-500">1,677만 가지 HTML 색상 중 무작위 배정</div>
                         </div>
                     </div>
-                    <button type="button" id="btn-reroll-color" class="text-xs font-extrabold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-xl shadow-sm active:scale-95 transition cursor-pointer shrink-0">
-                        🎲 다시 뽑기
-                    </button>
                 </div>
 
-                <button id="btn-auth-submit" type="submit" class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 active:scale-[0.98] text-white font-game text-xl shadow-lg shadow-orange-500/30 transition cursor-pointer">
+                <div id="auth-error-box" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-3 py-2 rounded-xl">
+                    오류 메시지
+                </div>
+
+                <button id="btn-auth-submit" type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-game text-lg shadow-lg transition cursor-pointer mt-1">
                     로그인하고 입장하기
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Anti-Auto-Clicker 3-Stage Escalating Verification Modal -->
+    <div id="macro-captcha-modal" class="hidden fixed inset-0 z-[3000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 text-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-4 border-rose-500 text-center">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-400/50 text-3xl mb-2">
+                🚨
+            </div>
+            <div class="flex items-center justify-center gap-1.5 mb-1">
+                <span id="macro-warning-count-badge" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-500/25 text-rose-300 border border-rose-400/50">
+                    누적 경고 1회 (1단계 인증)
+                </span>
+            </div>
+            <h2 class="font-game text-2xl text-rose-400">오토클리커 / 잠수 감지 경고!</h2>
+            <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                비정상적인 반복 입력 패턴이 감지되었습니다.<br>
+                아래 제시된 문구를 키보드로 정확히 입력해야 경고가 해제됩니다!
+            </p>
+
+            <form id="macro-captcha-form" class="mt-3.5 flex flex-col gap-3 text-left">
+                <!-- Stage 1: Always Required -->
+                <div>
+                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
+                        <span>1. 영문 인증 코드</span>
+                        <span class="font-mono text-amber-300 font-black text-xs select-none">imnoauto</span>
+                    </div>
+                    <input id="input-macro-captcha-1" type="text" autocomplete="off" spellcheck="false"
+                        placeholder="imnoauto 입력"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-emerald-400 focus:outline-none text-center font-mono text-sm font-bold text-white" />
+                </div>
+
+                <!-- Stage 2: Required when warningCount >= 3 -->
+                <div id="macro-stage-2-box" class="hidden">
+                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
+                        <span>2. 한글 서약 문구 (3회 이상 경고)</span>
+                        <span class="text-sky-300 font-black text-xs select-none">나는 오토가 아닙니다</span>
+                    </div>
+                    <input id="input-macro-captcha-2" type="text" autocomplete="off" spellcheck="false"
+                        placeholder="나는 오토가 아닙니다"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-sky-400 focus:outline-none text-center text-sm font-bold text-white" />
+                </div>
+
+                <!-- Stage 3: Required when warningCount > 5 -->
+                <div id="macro-stage-3-box" class="hidden">
+                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
+                        <span>3. 고난도 랜덤 한글 4글자 (6회 이상 경고)</span>
+                        <span id="macro-hard-hangul-target" class="text-fuchsia-300 font-black text-sm tracking-widest select-none">찋쉡틓녲</span>
+                    </div>
+                    <input id="input-macro-captcha-3" type="text" autocomplete="off" spellcheck="false"
+                        placeholder="위 어려운 4글자를 정확히 입력"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-fuchsia-400 focus:outline-none text-center text-base font-black tracking-widest text-white" />
+                </div>
+
+                <div id="macro-captcha-error" class="hidden text-xs font-bold text-rose-400 text-center">
+                    제시된 모든 문구를 띄어쓰기까지 정확히 입력해 주세요!
+                </div>
+                <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-slate-950 font-game text-lg shadow-lg transition cursor-pointer mt-1">
+                    ✅ 인증하고 계속 점령하기
                 </button>
             </form>
         </div>
@@ -382,6 +443,124 @@
         let selectedCell = null;
         let localClickProgress = {};
         let lastValidClickTime = 0;
+
+        // --- Anti-Auto-Clicker Telemetry State (15x Identical ms Interval + 3-Stage Captcha) ---
+        const IDENTICAL_INTERVAL_TOLERANCE_MS = 10; // ±10ms 이내면 동일 간격으로 간주
+        const IDENTICAL_INTERVAL_LIMIT = 15;        // 15회 이상 연속 시 경고창 발동
+        let baseIntervalMs = null;
+        let identicalIntervalStreak = 0;
+        let isMacroLocked = false;
+        let macroWarningCount = 0;
+        let currentHardHangul = '찋쉡틓녲';
+
+        // 겹받침/복합모음이 섞인 읽기 어렵고 복붙 불가한 랜덤 한글 4글자 생성기
+        function generateHardHangul4() {
+            const hardPool = [
+                '찋', '쉡', '틓', '녲', '뷁', '뤩', '쉥', '뗑', '쮀', '퀭',
+                '뽩', '쓻', '흴', '낅', '좳', '풻', '멻', '켵', '둟', '슳',
+                '톧', '뻵', '잚', '홁', '댦', '욿', '팗', '묐', '츩', '놟'
+            ];
+            let res = '';
+            for (let i = 0; i < 4; i++) {
+                res += hardPool[Math.floor(Math.random() * hardPool.length)];
+            }
+            return res;
+        }
+
+        function openMacroCaptchaModal(isNewTrigger = true) {
+            if (isNewTrigger && !isMacroLocked) {
+                macroWarningCount++;
+            }
+            isMacroLocked = true;
+            identicalIntervalStreak = 0;
+            baseIntervalMs = null;
+            playTone(160, 'sawtooth', 0.25, 0.22);
+
+            const modal = document.getElementById('macro-captcha-modal');
+            const badge = document.getElementById('macro-warning-count-badge');
+            const input1 = document.getElementById('input-macro-captcha-1');
+            const input2 = document.getElementById('input-macro-captcha-2');
+            const input3 = document.getElementById('input-macro-captcha-3');
+            const stage2Box = document.getElementById('macro-stage-2-box');
+            const stage3Box = document.getElementById('macro-stage-3-box');
+            const hardTargetEl = document.getElementById('macro-hard-hangul-target');
+            const errEl = document.getElementById('macro-captcha-error');
+
+            if (errEl) errEl.classList.add('hidden');
+            if (input1) input1.value = '';
+            if (input2) input2.value = '';
+            if (input3) input3.value = '';
+
+            // 경고 누적 횟수별 단계 UI 전환
+            if (macroWarningCount > 5) {
+                if (badge) badge.textContent = `🚨 누적 경고 ${macroWarningCount}회 (3단계 최고난도 인증)`;
+                stage2Box.classList.remove('hidden');
+                stage3Box.classList.remove('hidden');
+                if (isNewTrigger) {
+                    currentHardHangul = generateHardHangul4();
+                }
+                if (hardTargetEl) hardTargetEl.textContent = currentHardHangul;
+            } else if (macroWarningCount >= 3) {
+                if (badge) badge.textContent = `⚠️ 누적 경고 ${macroWarningCount}회 (2단계 한글 인증)`;
+                stage2Box.classList.remove('hidden');
+                stage3Box.classList.add('hidden');
+            } else {
+                if (badge) badge.textContent = `누적 경고 ${macroWarningCount}회 (1단계 영문 인증)`;
+                stage2Box.classList.add('hidden');
+                stage3Box.classList.add('hidden');
+            }
+
+            if (modal) {
+                modal.classList.remove('hidden');
+                setTimeout(() => input1 && input1.focus(), 50);
+            }
+        }
+
+        function verifyHumanClick(e) {
+            const now = Date.now();
+
+            // 0. 인증 잠금 상태면 기존 경고 모달 유지 (중복 카운트 증가 방지)
+            if (isMacroLocked) {
+                openMacroCaptchaModal(false);
+                return false;
+            }
+
+            // 1. 브라우저 신뢰 이벤트(e.isTrusted) & 키보드 엔터/스페이스 연타(e.detail === 0) 차단
+            if (!e.isTrusted || e.detail === 0) {
+                openMacroCaptchaModal(true);
+                return false;
+            }
+
+            // 2. 직전 클릭과의 간격(ms)이 기준 간격과 ±10ms 이내로 동일한 횟수 추적
+            if (lastValidClickTime > 0) {
+                const interval = now - lastValidClickTime;
+
+                // 2.5초 이상 쉬었다가 다시 누른 경우 연속 카운트 초기화
+                if (interval > 2500) {
+                    identicalIntervalStreak = 0;
+                    baseIntervalMs = null;
+                } else {
+                    if (
+                        baseIntervalMs !== null &&
+                        Math.abs(interval - baseIntervalMs) <= IDENTICAL_INTERVAL_TOLERANCE_MS
+                    ) {
+                        identicalIntervalStreak++;
+                    } else {
+                        identicalIntervalStreak = 1;
+                        baseIntervalMs = interval;
+                    }
+
+                    // 동일 간격(ms) 누른 횟수가 15회 이상이면 즉시 경고창 발동!
+                    if (identicalIntervalStreak >= IDENTICAL_INTERVAL_LIMIT) {
+                        openMacroCaptchaModal(true);
+                        return false;
+                    }
+                }
+            }
+
+            lastValidClickTime = now;
+            return true;
+        }
 
         // --- 3. Pure JS SHA-256 Fallback (Works on both HTTP & HTTPS) ---
         async function hashPassword(rawPassword) {
@@ -1160,6 +1339,37 @@
             document.getElementById('tab-mode-login').addEventListener('click', () => switchAuthMode('login'));
             document.getElementById('tab-mode-signup').addEventListener('click', () => switchAuthMode('signup'));
 
+            // Macro Captcha 3-Stage Unlock Form
+            document.getElementById('macro-captcha-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const input1 = document.getElementById('input-macro-captcha-1');
+                const input2 = document.getElementById('input-macro-captcha-2');
+                const input3 = document.getElementById('input-macro-captcha-3');
+                const errEl = document.getElementById('macro-captcha-error');
+
+                const val1 = (input1.value || '').trim().toLowerCase();
+                const val2 = (input2.value || '').trim();
+                const val3 = (input3.value || '').trim();
+
+                const passStage1 = val1 === 'imnoauto';
+                const passStage2 = macroWarningCount < 3 || val2 === '나는 오토가 아닙니다';
+                const passStage3 = macroWarningCount <= 5 || val3 === currentHardHangul;
+
+                if (passStage1 && passStage2 && passStage3) {
+                    isMacroLocked = false;
+                    identicalIntervalStreak = 0;
+                    baseIntervalMs = null;
+                    lastValidClickTime = 0;
+                    errEl.classList.add('hidden');
+                    document.getElementById('macro-captcha-modal').classList.add('hidden');
+                    playTone(660, 'sine', 0.14, 0.18);
+                    showToast('✅ 인증 완료! 다시 점령을 계속할 수 있습니다.');
+                } else {
+                    errEl.classList.remove('hidden');
+                    playTone(180, 'sawtooth', 0.18, 0.18);
+                }
+            });
+
             // Initialize Random Color Preview & Reroll Button
             applySelectedColorPreview(selectedColor);
             document.getElementById('btn-reroll-color').addEventListener('click', () => {
@@ -1320,19 +1530,15 @@
                 scheduleMapRender();
             });
 
-            // Conquest Click Button (Anti-keyboard hold & macro guard)
+            // Conquest Click Button (4-Layer Anti-Auto-Clicker Guard)
             const attackBtn = document.getElementById('btn-click-conquer');
             attackBtn.addEventListener('click', async (e) => {
-                if (e.detail === 0) {
-                    e.preventDefault();
-                    attackBtn.blur();
-                    return;
-                }
                 attackBtn.blur();
 
-                const now = Date.now();
-                if (now - lastValidClickTime < 35) return;
-                lastValidClickTime = now;
+                if (!verifyHumanClick(e)) {
+                    e.preventDefault();
+                    return;
+                }
 
                 if (!selectedCell || !playerProfile.nickname) return;
                 const existing = territories[selectedCell.id];
