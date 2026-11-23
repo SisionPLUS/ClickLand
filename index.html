@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="클릭땅">
     <title>클릭땅 (ClickLand) - 전 세계 5m × 5m 실시간 땅따먹기</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -137,10 +141,13 @@
             </div>
 
             <div class="flex items-center gap-1.5">
+                <button id="btn-invite-friend" title="친구 초대 문자/링크 공유" class="px-2.5 h-9 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1 transition cursor-pointer shadow">
+                    📩 초대
+                </button>
                 <button id="btn-toggle-sound" title="효과음 켜기/끄기" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-base transition cursor-pointer">
                     🔊
                 </button>
-                <button id="btn-open-settings" title="로그인 / 계정 전환" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-base transition cursor-pointer">
+                <button id="btn-open-settings" title="설정 / 알림 / 계정 전환" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-base transition cursor-pointer">
                     ⚙️
                 </button>
             </div>
@@ -221,7 +228,7 @@
     </div>
 
     <!-- Global Live Conquest Ticker -->
-    <div id="live-ticker" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none bg-slate-950/90 text-white border border-amber-400/70 px-4 py-2 rounded-full shadow-2xl text-xs font-extrabold whitespace-nowrap">
+    <div id="live-ticker" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[1200] pointer-events-none bg-slate-950/90 text-white border border-amber-400/70 px-4 py-2 rounded-full shadow-2xl text-xs font-extrabold whitespace-nowrap">
         ⚔️ 실시간 알림
     </div>
 
@@ -274,6 +281,56 @@
         </button>
     </div>
 
+    <!-- Settings & Territory Steal Push Notification Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-[2100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 text-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-slate-700">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-game text-xl text-amber-300 flex items-center gap-1.5">⚙️ 게임 설정 및 알림</h2>
+                <button type="button" id="btn-close-settings-modal" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm flex items-center justify-center cursor-pointer">
+                    ✕
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <!-- Territory Stolen Push Notification Toggle -->
+                <div class="bg-slate-800/90 p-3.5 rounded-2xl border border-slate-700 flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-extrabold text-white flex items-center gap-1">
+                            🚨 땅 빼앗겼을 때 푸시 알림
+                        </div>
+                        <div class="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                            다른 유저가 내 영토를 빼앗으면<br>"##님이 땅을 빼앗았습니다!" 푸시 알림 발송
+                        </div>
+                    </div>
+                    <button type="button" id="btn-toggle-steal-alert" class="px-3 py-1.5 rounded-xl font-extrabold text-xs bg-emerald-500 text-slate-950 transition cursor-pointer shrink-0">
+                        ON
+                    </button>
+                </div>
+
+                <!-- Friend Invite Share Box -->
+                <div class="bg-slate-800/90 p-3.5 rounded-2xl border border-slate-700">
+                    <div class="text-xs font-extrabold text-amber-300 mb-1">📩 친구 초대 메시지 보내기</div>
+                    <div class="text-[11px] text-slate-400 mb-2.5">
+                        클릭땅 홍보 문구를 복사하거나 스마트폰 문자 앱으로 바로 전송할 수 있습니다.
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="btn-copy-invite" class="py-2 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs transition cursor-pointer">
+                            📋 초대문구 복사
+                        </button>
+                        <button type="button" id="btn-sms-invite" class="py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition cursor-pointer">
+                            💬 문자로 보내기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Account Switch Button -->
+                <button type="button" id="btn-switch-account" class="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer mt-1">
+                    🔑 다른 계정으로 로그인 / 회원가입
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Login / Register Modal -->
     <div id="nickname-modal" class="fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white text-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border-4 border-amber-400">
@@ -298,7 +355,7 @@
             <form id="nickname-form" class="flex flex-col gap-3">
                 <div>
                     <label class="block text-xs font-extrabold text-slate-700 mb-1">닉네임 (최대 10자)</label>
-                    <input id="input-nickname" type="text" maxlength="10" required placeholder="예: 이시온"
+                    <input id="input-nickname" type="text" maxlength="10" required placeholder="예: 땅따먹기왕"
                         class="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:outline-none text-sm font-bold" />
                 </div>
 
@@ -457,10 +514,19 @@
         };
 
         let soundEnabled = true;
+        let stealAlertEnabled = localStorage.getItem('wc_steal_alert') !== 'false';
         let selectedColor = playerProfile.color;
         let authMode = 'login'; // 'login' | 'signup'
         let territories = {};
         let isInitialSnapshotLoaded = false;
+
+        const INVITE_MESSAGE_TEXT = `요즘 할 게임이 없어? 💩 
+그럼 이 게임을 해봐! 클릭땅!👆
+클릭! 클릭! 누르면서 성장하는 땅따먹기! ⛱️
+회원가입 한번만 해도 바로 즐길 수 있는 게임이야! 🎮
+누구나 언제나 즐길 수 있는 클릭땅! 많이 플레이 해줘! 😀
+서버 주소 👉 https://clickland.netlify.app/ 👈
+보조 주소 👉 http://clickland.kro.kr/ 👈`;
 
         let map;
         let activeTileLayer;
@@ -548,23 +614,19 @@
         function verifyHumanClick(e) {
             const now = Date.now();
 
-            // 0. 인증 잠금 상태면 기존 경고 모달 유지 (중복 카운트 증가 방지)
             if (isMacroLocked) {
                 openMacroCaptchaModal(false);
                 return false;
             }
 
-            // 1. 브라우저 신뢰 이벤트(e.isTrusted) & 키보드 엔터/스페이스 연타(e.detail === 0) 차단
             if (!e.isTrusted || e.detail === 0) {
                 openMacroCaptchaModal(true);
                 return false;
             }
 
-            // 2. 직전 클릭과의 간격(ms)이 기준 간격과 ±10ms 이내로 동일한 횟수 추적
             if (lastValidClickTime > 0) {
                 const interval = now - lastValidClickTime;
 
-                // 2.5초 이상 쉬었다가 다시 누른 경우 연속 카운트 초기화
                 if (interval > 2500) {
                     identicalIntervalStreak = 0;
                     baseIntervalMs = null;
@@ -579,7 +641,6 @@
                         baseIntervalMs = interval;
                     }
 
-                    // 동일 간격(ms) 누른 횟수가 15회 이상이면 즉시 경고창 발동!
                     if (identicalIntervalStreak >= IDENTICAL_INTERVAL_LIMIT) {
                         openMacroCaptchaModal(true);
                         return false;
@@ -713,7 +774,7 @@
             }
         }
 
-        // --- 4. Web Audio API Sound Effects ---
+        // --- 4. Web Audio API Sound Effects & Push Notifications ---
         let audioCtx = null;
         function playTone(freq, type = 'sine', duration = 0.08, volume = 0.14) {
             if (!soundEnabled) return;
@@ -732,9 +793,7 @@
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + duration);
-            } catch (e) {
-                // Ignore audio context block
-            }
+            } catch (e) {}
         }
 
         function playClickSound(progressRatio) {
@@ -747,6 +806,76 @@
             setTimeout(() => playTone(659.25, 'sine', 0.12, 0.18), 90);
             setTimeout(() => playTone(783.99, 'sine', 0.14, 0.18), 180);
             setTimeout(() => playTone(1046.5, 'triangle', 0.28, 0.22), 270);
+        }
+
+        async function triggerTerritoryStolenAlert(attackerName, lat, lng) {
+            if (!stealAlertEnabled) return;
+
+            const landmark = getLandmarkInfo(lat, lng);
+            const placeName = landmark ? landmark.name : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            const alertMsg = `🚨 ${attackerName}님이 땅을 빼앗았습니다! (${placeName})`;
+
+            showLiveTicker(alertMsg);
+            playTone(440, 'sawtooth', 0.14, 0.22);
+            setTimeout(() => playTone(330, 'sawtooth', 0.22, 0.22), 130);
+            if (navigator.vibrate) {
+                try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+            }
+
+            if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    try { await Notification.requestPermission(); } catch (e) {}
+                }
+                if (Notification.permission === 'granted') {
+                    const notifTitle = '🚨 클릭땅 영토 침공 경보!';
+                    const notifOptions = {
+                        body: `${attackerName}님이 땅을 빼앗았습니다! (${placeName})`,
+                        tag: 'clickland-steal-' + Date.now(),
+                        renotify: true,
+                        vibrate: [200, 100, 200]
+                    };
+
+                    try {
+                        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                            const reg = await navigator.serviceWorker.ready;
+                            await reg.showNotification(notifTitle, notifOptions);
+                        } else {
+                            const notif = new Notification(notifTitle, notifOptions);
+                            notif.onclick = () => {
+                                window.focus();
+                                if (map) map.setView([lat, lng], 19);
+                                notif.close();
+                            };
+                        }
+                    } catch (e) {
+                        try {
+                            new Notification(notifTitle, notifOptions);
+                        } catch (_) {}
+                    }
+                }
+            }
+        }
+
+        function updateStealAlertUI() {
+            const btn = document.getElementById('btn-toggle-steal-alert');
+            if (!btn) return;
+            if (stealAlertEnabled) {
+                btn.textContent = 'ON';
+                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-emerald-500 text-slate-950 transition cursor-pointer shrink-0';
+            } else {
+                btn.textContent = 'OFF';
+                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-slate-600 text-slate-200 transition cursor-pointer shrink-0';
+            }
+        }
+
+        function copyInviteText() {
+            const ta = document.createElement('textarea');
+            ta.value = INVITE_MESSAGE_TEXT;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('📋 친구 초대 홍보 문구가 클립보드에 복사되었습니다!');
         }
 
         // --- 5. 5m × 5m Grid Math & Landmark / Siege Pricing ---
@@ -822,7 +951,7 @@
                 .replace(/"/g, '&quot;');
         }
 
-        // --- 6. Map Initialization & Tile Layers ---
+        // --- 6. Map Initialization & Tile Layers (Google Maps + Esri Satellite) ---
         function createBaseTileLayer(satellite) {
             if (satellite) {
                 return L.tileLayer(
@@ -1043,7 +1172,7 @@
                 }
             });
 
-            // 2) 줌 18 이상일 때만 1m × 1m 빈 격자 렌더링
+            // 2) 줌 17 이상일 때만 5m × 5m 빈 격자 렌더링
             if (zoom < GRID_MIN_ZOOM) return;
 
             const south = bounds.getSouth();
@@ -1255,7 +1384,7 @@
                 messagesEl.scrollTop = messagesEl.scrollHeight;
             });
 
-            // 2) 관리자 강제 새로고침(/resetall) 실시간 수신기 (별도 채팅/배너 알림 없이 조용히 새로고침)
+            // 2) 관리자 강제 새로고침(/resetall) 실시간 수신기
             const forceReloadRef = ref(db, 'system/forceReloadAt');
             onValue(forceReloadRef, (snapshot) => {
                 const reloadTs = snapshot.val();
@@ -1269,7 +1398,7 @@
                 if (reloadTs > initialForceReloadTimestamp) {
                     initialForceReloadTimestamp = reloadTs;
                     const host = window.location.hostname;
-                    if (host === 'clickland.kro.kr' || host.endsWith('.clickland.kro.kr') || host.includes('github.io')) {
+                    if (host === 'clickland.kro.kr' || host.endsWith('.clickland.kro.kr') || host.endsWith('.netlify.app') || host.includes('github.io')) {
                         window.location.reload();
                     }
                 }
@@ -1292,7 +1421,10 @@
                         for (const [cellId, val] of Object.entries(newData)) {
                             const prev = territories[cellId];
                             if (!prev || prev.owner !== val.owner) {
-                                if (val.owner !== playerProfile.nickname) {
+                                // 내 땅이 다른 유저에게 빼앗겼는지 먼저 체크 -> 푸시 알림 발송!
+                                if (prev && prev.owner === playerProfile.nickname && val.owner !== playerProfile.nickname) {
+                                    triggerTerritoryStolenAlert(val.owner, val.lat, val.lng);
+                                } else if (val.owner !== playerProfile.nickname) {
                                     const landmark = getLandmarkInfo(val.lat, val.lng);
                                     const spotText = landmark ? landmark.name : `${val.lat.toFixed(4)}, ${val.lng.toFixed(4)}`;
                                     showLiveTicker(`🚩 ${val.owner}님이 새로운 [${spotText}] 구역을 점령했습니다!`);
@@ -1378,7 +1510,7 @@
             if (toastTimer) clearTimeout(toastTimer);
             toastTimer = setTimeout(() => {
                 ticker.classList.add('hidden');
-            }, 3200);
+            }, 3400);
         }
 
         function updateProfileHUD() {
@@ -1467,7 +1599,6 @@
                 if (!rawText) return;
                 chatInput.value = '';
 
-                // 명령어 처리 ('/'로 시작하는 입력)
                 if (rawText.startsWith('/')) {
                     const cmd = rawText.split(' ')[0].toLowerCase();
                     if (cmd === '/resetall') {
@@ -1487,7 +1618,6 @@
                     return;
                 }
 
-                // 일반 채팅 메시지 전송
                 try {
                     await push(ref(db, 'chat_messages'), {
                         sender: playerProfile.nickname,
@@ -1587,6 +1717,10 @@
                             ? `다시 오셨군요, ${nickInput}님! 기존 영토 색상이 유지되었습니다.`
                             : `🎉 회원가입 완료! ${nickInput}님 환영합니다!`
                     );
+
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        try { await Notification.requestPermission(); } catch (_) {}
+                    }
                 } catch (err) {
                     console.error('Auth error:', err);
                     errorBox.textContent = '서버 인증 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
@@ -1597,8 +1731,33 @@
                 }
             });
 
-            // Open Settings / Account Switch Modal
+            // Top Invite Button
+            document.getElementById('btn-invite-friend').addEventListener('click', copyInviteText);
+
+            // Open Settings / Notification / Account Switch Modal
             document.getElementById('btn-open-settings').addEventListener('click', () => {
+                updateStealAlertUI();
+                document.getElementById('settings-modal').classList.remove('hidden');
+            });
+            document.getElementById('btn-close-settings-modal').addEventListener('click', () => {
+                document.getElementById('settings-modal').classList.add('hidden');
+            });
+            document.getElementById('btn-toggle-steal-alert').addEventListener('click', async () => {
+                stealAlertEnabled = !stealAlertEnabled;
+                localStorage.setItem('wc_steal_alert', String(stealAlertEnabled));
+                updateStealAlertUI();
+                if (stealAlertEnabled && 'Notification' in window && Notification.permission === 'default') {
+                    try { await Notification.requestPermission(); } catch (_) {}
+                }
+                showToast(stealAlertEnabled ? '🚨 영토 침공 푸시 알림을 켰습니다.' : '🔕 영토 침공 알림을 껐습니다.');
+            });
+            document.getElementById('btn-copy-invite').addEventListener('click', copyInviteText);
+            document.getElementById('btn-sms-invite').addEventListener('click', () => {
+                const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? '&' : '?';
+                window.location.href = `sms:${sep}body=${encodeURIComponent(INVITE_MESSAGE_TEXT)}`;
+            });
+            document.getElementById('btn-switch-account').addEventListener('click', () => {
+                document.getElementById('settings-modal').classList.add('hidden');
                 switchAuthMode('login');
                 document.getElementById('input-nickname').value = playerProfile.nickname;
                 document.getElementById('input-password').value = localStorage.getItem('wc_pass_raw') || '';
@@ -1620,7 +1779,7 @@
                     map.removeLayer(activeTileLayer);
                 }
                 activeTileLayer = createBaseTileLayer(isSatelliteMode).addTo(map);
-                document.getElementById('map-style-label').textContent = isSatelliteMode ? '위성지도' : '일반지도';
+                document.getElementById('map-style-label').textContent = isSatelliteMode ? '일반지도' : '위성지도';
                 showToast(isSatelliteMode ? '고해상도 위성지도로 전환했습니다.' : '일반 도로 지도로 전환했습니다.');
             });
 
@@ -1696,7 +1855,7 @@
                 scheduleMapRender();
             });
 
-            // Conquest Click Button (4-Layer Anti-Auto-Clicker Guard)
+            // Conquest Click Button
             const attackBtn = document.getElementById('btn-click-conquer');
             attackBtn.addEventListener('click', async (e) => {
                 attackBtn.blur();
@@ -1725,19 +1884,18 @@
 
             // Global Chat Hotkeys ('t'/'T' to open & focus chat, '/' to open & start command)
             document.addEventListener('keydown', (e) => {
-                // 입력창(채팅, 검색창, 로그인, 캡차 모달)에 타이핑 중이거나 모달이 열려 있으면 단축키 무시
                 const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
                 if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
 
                 const isLoginOpen = !document.getElementById('nickname-modal').classList.contains('hidden');
                 const isCaptchaOpen = !document.getElementById('macro-captcha-modal').classList.contains('hidden');
-                if (isLoginOpen || isCaptchaOpen || e.ctrlKey || e.metaKey || e.altKey) return;
+                const isSettingsOpen = !document.getElementById('settings-modal').classList.contains('hidden');
+                if (isLoginOpen || isCaptchaOpen || isSettingsOpen || e.ctrlKey || e.metaKey || e.altKey) return;
 
                 const key = e.key;
                 if (key === 't' || key === 'T' || key === 'ㅅ' || key === '/') {
                     e.preventDefault();
 
-                    // 채팅창이 접혀 있으면 자동으로 펼치기
                     if (isChatCollapsed) {
                         isChatCollapsed = false;
                         document.getElementById('chat-body').classList.remove('hidden');
@@ -1747,7 +1905,6 @@
                     const chatInput = document.getElementById('chat-input');
                     chatInput.focus();
 
-                    // '/' 키를 누른 경우 바로 명령어 입력이 가능하도록 '/' 자동 입력
                     if (key === '/' && !chatInput.value.startsWith('/')) {
                         chatInput.value = '/' + chatInput.value;
                     }
