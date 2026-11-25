@@ -588,7 +588,7 @@
         let currentCaptchaPhrase2 = '';
         let currentHardHangul = '';
 
-        // --- Human-Readable Device & OS Descriptor (e.g., "S26 (Android 16)", "Windows 11 (24H2)") ---
+        // --- Human-Readable Device & OS Descriptor (e.g., "S26(Android16)", "Windows11(24H2)") ---
         function mapSamsungModelToMarketingName(rawModel) {
             if (!rawModel) return '';
             const m = rawModel.toUpperCase().trim();
@@ -658,7 +658,6 @@
                 } catch (e) {}
             }
 
-            // 1. Android 기기: 예) S26(Android16) / SM-S928N(Android15)
             if (/Android/i.test(ua) || platform.toLowerCase() === 'android') {
                 const androidVerMatch = ua.match(/Android\s+([0-9.]+)/i);
                 const androidVer = (platformVersion && platformVersion.split('.')[0]) || (androidVerMatch ? androidVerMatch[1].split('.')[0] : '');
@@ -673,7 +672,6 @@
                 return androidVer ? `${friendlyModel}(Android${androidVer})` : `${friendlyModel}(Android)`;
             }
 
-            // 2. iPhone / iPad: 예) iPhone(iOS18.2) / iPad(iPadOS18.1)
             if (/iPhone|iPad|iPod/i.test(ua)) {
                 const isPad = /iPad/i.test(ua);
                 const iosMatch = ua.match(/OS\s+([0-9_]+)/i);
@@ -683,7 +681,6 @@
                 return iosVer ? `${deviceName}(${osPrefix}${iosVer})` : `${deviceName}(${osPrefix})`;
             }
 
-            // 3. Windows PC: 예) Windows11(24H2) / Windows10(22H2)
             if (/Windows/i.test(ua) || platform.toLowerCase() === 'windows') {
                 if (platformVersion) {
                     return mapWindowsBuildToRelease(platformVersion).replace(/\s+/g, '');
@@ -694,7 +691,6 @@
                 return 'Windows';
             }
 
-            // 4. macOS: 예) Mac(macOS15.2)
             if (/Macintosh|Mac OS X/i.test(ua) || platform.toLowerCase() === 'macos') {
                 const macVer = platformVersion || ((ua.match(/Mac OS X\s+([0-9_]+)/i) || [])[1] || '').replace(/_/g, '.');
                 return macVer ? `Mac(macOS${macVer})` : 'Mac(macOS)';
@@ -1069,7 +1065,28 @@
             };
         }
 
-        // --- 5. Map & Layer Rendering ---
+        // --- 5. Map & Layer Rendering (Google Maps Street + Esri Satellite) ---
+        function createBaseTileLayer(satellite) {
+            if (satellite) {
+                return L.tileLayer(
+                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                    {
+                        attribution: 'Tiles &copy; Esri',
+                        maxNativeZoom: 18,
+                        maxZoom: 22
+                    }
+                );
+            }
+            return L.tileLayer(
+                'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                {
+                    attribution: '&copy; Google Maps',
+                    maxNativeZoom: 20,
+                    maxZoom: 22
+                }
+            );
+        }
+
         function initMap() {
             map = L.map('map', {
                 center: [DEFAULT_LAT, DEFAULT_LNG],
@@ -1081,26 +1098,16 @@
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                maxNativeZoom: 19,
-                maxZoom: 22
-            });
-
-            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '&copy; Esri World Imagery',
-                maxNativeZoom: 19,
-                maxZoom: 22
-            });
-
-            activeTileLayer = streetLayer.addTo(map);
+            activeTileLayer = createBaseTileLayer(false).addTo(map);
 
             document.getElementById('btn-toggle-map-style').addEventListener('click', () => {
-                map.removeLayer(activeTileLayer);
+                if (activeTileLayer && map.hasLayer(activeTileLayer)) {
+                    map.removeLayer(activeTileLayer);
+                }
                 isSatelliteMode = !isSatelliteMode;
-                activeTileLayer = (isSatelliteMode ? satelliteLayer : streetLayer).addTo(map);
+                activeTileLayer = createBaseTileLayer(isSatelliteMode).addTo(map);
                 document.getElementById('map-style-label').textContent = isSatelliteMode ? '일반' : '위성';
-                showToast(isSatelliteMode ? '위성 지도로 전환했습니다.' : '일반 도로 지도로 전환했습니다.');
+                showToast(isSatelliteMode ? '위성 지도로 전환했습니다.' : '일반 구글 지도로 전환했습니다.');
             });
 
             ownedLayerGroup = L.layerGroup().addTo(map);
@@ -1574,7 +1581,6 @@
             const toggleBtn = document.getElementById('btn-toggle-chat');
             const chatHeader = document.getElementById('chat-header');
 
-            // 모바일에서는 시작 시 채팅창을 기본 접힘으로 두어 지도 가림 최소화
             let isChatCollapsed = window.innerWidth < 640;
             if (isChatCollapsed) {
                 chatBody.classList.add('hidden');
@@ -1961,7 +1967,6 @@
         }
 
         function setupControls() {
-            // Leaderboard Collapse Toggle (Default Collapsed on Mobile so Map & Search never overlap!)
             const lbHeader = document.getElementById('leaderboard-header');
             const lbList = document.getElementById('leaderboard-list');
             const lbToggleBtn = document.getElementById('btn-toggle-leaderboard');
@@ -1983,7 +1988,6 @@
                 }
             });
 
-            // Conquer Click Button
             const btnClick = document.getElementById('btn-click-conquer');
             btnClick.addEventListener('click', (e) => {
                 if (!selectedCell) return;
