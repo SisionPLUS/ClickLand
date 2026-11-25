@@ -430,44 +430,41 @@
             </p>
 
             <form id="macro-captcha-form" class="mt-3.5 flex flex-col gap-3 text-left">
-                <!-- Stage 1: Always Required (Dynamic Canvas Image) -->
+                <!-- Stage 1: Always Required -->
                 <div>
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
-                        <span>1. 보안 이미지 문자 (대소문자 무관)</span>
-                        <span class="text-amber-300 font-bold text-[10px]">DOM 추출 차단됨</span>
+                        <span>1. 영문 인증 코드</span>
+                        <span class="font-mono text-amber-300 font-black text-xs select-none">imnoauto</span>
                     </div>
-                    <canvas id="macro-canvas-1" width="260" height="46" class="w-full h-11 rounded-xl border border-slate-600 mb-1.5 bg-slate-950"></canvas>
                     <input id="input-macro-captcha-1" type="text" autocomplete="off" spellcheck="false"
-                        placeholder="위 이미지 속 6자리 코드 입력"
+                        placeholder="imnoauto 입력"
                         class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-emerald-400 focus:outline-none text-center font-mono text-sm font-bold text-white" />
                 </div>
 
-                <!-- Stage 2: Required when warningCount >= 3 (Dynamic Canvas Phrase) -->
+                <!-- Stage 2: Required when warningCount >= 3 -->
                 <div id="macro-stage-2-box" class="hidden">
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
                         <span>2. 한글 서약 문구 (3회 이상 경고)</span>
-                        <span class="text-sky-300 font-bold text-[10px]">띄어쓰기 포함</span>
+                        <span class="text-sky-300 font-black text-xs select-none">나는 오토가 아닙니다</span>
                     </div>
-                    <canvas id="macro-canvas-2" width="260" height="46" class="w-full h-11 rounded-xl border border-slate-600 mb-1.5 bg-slate-950"></canvas>
                     <input id="input-macro-captcha-2" type="text" autocomplete="off" spellcheck="false"
-                        placeholder="위 이미지의 한글 문구 그대로 입력"
+                        placeholder="나는 오토가 아닙니다"
                         class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-sky-400 focus:outline-none text-center text-sm font-bold text-white" />
                 </div>
 
-                <!-- Stage 3: Required when warningCount > 5 (Hard Hangul Canvas) -->
+                <!-- Stage 3: Required when warningCount > 5 -->
                 <div id="macro-stage-3-box" class="hidden">
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
                         <span>3. 고난도 랜덤 한글 4글자 (6회 이상 경고)</span>
-                        <span class="text-fuchsia-300 font-bold text-[10px]">최고난도</span>
+                        <span id="macro-hard-hangul-target" class="text-fuchsia-300 font-black text-sm tracking-widest select-none">찋쉡틓녲</span>
                     </div>
-                    <canvas id="macro-hard-hangul-target" width="260" height="52" class="w-full h-12 rounded-xl border border-fuchsia-500/60 mb-1.5 bg-slate-950"></canvas>
                     <input id="input-macro-captcha-3" type="text" autocomplete="off" spellcheck="false"
-                        placeholder="위 이미지의 어려운 4글자 입력"
+                        placeholder="위 어려운 4글자를 정확히 입력"
                         class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-fuchsia-400 focus:outline-none text-center text-base font-black tracking-widest text-white" />
                 </div>
 
                 <div id="macro-captcha-error" class="hidden text-xs font-bold text-rose-400 text-center">
-                    이미지 속 문구를 정확히 입력해 주세요!
+                    제시된 모든 문구를 띄어쓰기까지 정확히 입력해 주세요!
                 </div>
                 <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-slate-950 font-game text-lg shadow-lg transition cursor-pointer mt-1">
                     ✅ 인증하고 계속 점령하기
@@ -562,32 +559,29 @@
         let localClickProgress = {};
         let lastValidClickTime = 0;
 
-        // --- Anti-Auto-Clicker Telemetry State (v2.5 Multi-Grid Bot Defense) ---
-        const IDENTICAL_INTERVAL_TOLERANCE_MS = 10;
-        const IDENTICAL_INTERVAL_LIMIT = 12;
-        const MAX_HUMAN_CPS = 11;
-        const JITTER_STREAK_LIMIT = 15;
+        // --- Anti-Auto-Clicker Telemetry State (Human Jitter-Click Friendly + Anti-Enter/Macro) ---
+        const IDENTICAL_INTERVAL_TOLERANCE_MS = 4;
+        const IDENTICAL_INTERVAL_LIMIT = 18;
+        const MAX_HUMAN_CPS = 20;
         let baseIntervalMs = null;
         let identicalIntervalStreak = 0;
-        let fastJitterStreak = 0;
         let recentClickTimestamps = [];
         let isMacroLocked = false;
         let macroWarningCount = 0;
+        let currentHardHangul = '찋쉡틓녲';
 
         let lastConquerCompletedAt = 0;
         let rapidSwitchStreak = 0;
         let pointerMoveCountSinceLastClick = 0;
         let teleportClickStreak = 0;
+        let lastClickCoord = null;
+        let stationaryClickStreak = 0;
 
         document.addEventListener('pointermove', (e) => {
             if (e.isTrusted) {
                 pointerMoveCountSinceLastClick++;
             }
         }, { passive: true });
-
-        let currentCaptchaCode1 = '';
-        let currentCaptchaPhrase2 = '';
-        let currentHardHangul = '';
 
         // --- Human-Readable Device & OS Descriptor ---
         function mapSamsungModelToMarketingName(rawModel) {
@@ -729,152 +723,65 @@
             }
         }
 
-        function generateRandomAlphaNumCode(len = 6) {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let out = '';
-            for (let i = 0; i < len; i++) {
-                out += chars[Math.floor(Math.random() * chars.length)];
-            }
-            return out;
-        }
-
-        function generateRandomStage2Phrase() {
-            const phrases = [
-                '나는 직접 손으로 누릅니다',
-                '오토클리커 사용 안합니다',
-                '정정당당하게 땅을 먹자',
-                '매크로 없이 광클 도전중'
-            ];
-            return phrases[Math.floor(Math.random() * phrases.length)];
-        }
-
         function generateHardHangul4() {
-            const chosung = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18];
-            const jungsung = [1, 3, 5, 7, 9, 10, 11, 14, 15, 16, 19];
-            const jongsung = [3, 5, 6, 9, 10, 11, 12, 13, 14, 15, 18, 20, 23, 24, 25, 26];
-            let result = '';
+            const hardPool = [
+                '찋', '쉡', '틓', '녲', '뷁', '뤩', '쉥', '뗑', '쮀', '퀭',
+                '뽩', '쓻', '흴', '낅', '좳', '풻', '멻', '켵', '둟', '슳',
+                '톧', '뻵', '잚', '홁', '댦', '욿', '팗', '묐', '츩', '놟'
+            ];
+            let res = '';
             for (let i = 0; i < 4; i++) {
-                const cho = chosung[Math.floor(Math.random() * chosung.length)];
-                const jung = jungsung[Math.floor(Math.random() * jungsung.length)];
-                const jong = jongsung[Math.floor(Math.random() * jongsung.length)];
-                const code = 0xAC00 + (cho * 21 + jung) * 28 + jong;
-                result += String.fromCharCode(code);
+                res += hardPool[Math.floor(Math.random() * hardPool.length)];
             }
-            return result;
+            return res;
         }
 
-        function drawNoisyCaptchaCanvas(canvasId, text, textColor = '#fde047', fontSize = 22) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            const w = canvas.width;
-            const h = canvas.height;
-
-            ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = '#020617';
-            ctx.fillRect(0, 0, w, h);
-
-            ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
-            ctx.lineWidth = 1;
-            for (let x = 0; x < w; x += 18) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, h);
-                ctx.stroke();
-            }
-            for (let y = 0; y < h; y += 14) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(w, y);
-                ctx.stroke();
-            }
-
-            const noiseColors = ['#f43f5e', '#38bdf8', '#fbbf24', '#a855f7', '#10b981'];
-            for (let i = 0; i < 6; i++) {
-                ctx.strokeStyle = noiseColors[i % noiseColors.length] + '66';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(Math.random() * w, Math.random() * h);
-                ctx.bezierCurveTo(
-                    Math.random() * w, Math.random() * h,
-                    Math.random() * w, Math.random() * h,
-                    Math.random() * w, Math.random() * h
-                );
-                ctx.stroke();
-            }
-
-            for (let i = 0; i < 38; i++) {
-                ctx.fillStyle = noiseColors[i % noiseColors.length] + '88';
-                ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
-            }
-
-            ctx.font = `900 ${fontSize}px 'Inter', sans-serif`;
-            ctx.textBaseline = 'middle';
-            ctx.textAlign = 'center';
-
-            const chars = text.split('');
-            const step = (w - 36) / Math.max(chars.length, 1);
-            chars.forEach((ch, idx) => {
-                const cx = 18 + step * idx + step / 2;
-                const cy = h / 2 + (Math.random() * 6 - 3);
-                const angle = (Math.random() * 0.34) - 0.17;
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(angle);
-                ctx.fillStyle = textColor;
-                ctx.shadowColor = 'rgba(0,0,0,0.85)';
-                ctx.shadowBlur = 4;
-                ctx.fillText(ch, 0, 0);
-                ctx.restore();
-            });
-        }
-
-        function openMacroCaptchaModal(incrementWarning = true) {
-            if (incrementWarning) {
+        function openMacroCaptchaModal(isNewTrigger = true) {
+            if (isNewTrigger && !isMacroLocked) {
                 macroWarningCount++;
             }
             isMacroLocked = true;
+            identicalIntervalStreak = 0;
+            baseIntervalMs = null;
+            playTone(160, 'sawtooth', 0.25, 0.22);
+
             const modal = document.getElementById('macro-captcha-modal');
             const badge = document.getElementById('macro-warning-count-badge');
-            const stage2Box = document.getElementById('macro-stage-2-box');
-            const stage3Box = document.getElementById('macro-stage-3-box');
             const input1 = document.getElementById('input-macro-captcha-1');
             const input2 = document.getElementById('input-macro-captcha-2');
             const input3 = document.getElementById('input-macro-captcha-3');
+            const stage2Box = document.getElementById('macro-stage-2-box');
+            const stage3Box = document.getElementById('macro-stage-3-box');
+            const hardTargetEl = document.getElementById('macro-hard-hangul-target');
             const errEl = document.getElementById('macro-captcha-error');
 
-            input1.value = '';
-            input2.value = '';
-            input3.value = '';
-            errEl.classList.add('hidden');
+            if (errEl) errEl.classList.add('hidden');
+            if (input1) input1.value = '';
+            if (input2) input2.value = '';
+            if (input3) input3.value = '';
 
-            currentCaptchaCode1 = generateRandomAlphaNumCode(6);
-            drawNoisyCaptchaCanvas('macro-canvas-1', currentCaptchaCode1, '#fde047', 22);
-
-            let stageLabel = '1단계 인증';
             if (macroWarningCount > 5) {
-                stageLabel = '3단계 최고난도 인증';
+                if (badge) badge.textContent = `🚨 누적 경고 ${macroWarningCount}회 (3단계 최고난도 인증)`;
                 stage2Box.classList.remove('hidden');
                 stage3Box.classList.remove('hidden');
-                currentCaptchaPhrase2 = generateRandomStage2Phrase();
-                drawNoisyCaptchaCanvas('macro-canvas-2', currentCaptchaPhrase2, '#7dd3fc', 17);
-                currentHardHangul = generateHardHangul4();
-                drawNoisyCaptchaCanvas('macro-hard-hangul-target', currentHardHangul, '#f0abfc', 24);
+                if (isNewTrigger) {
+                    currentHardHangul = generateHardHangul4();
+                }
+                if (hardTargetEl) hardTargetEl.textContent = currentHardHangul;
             } else if (macroWarningCount >= 3) {
-                stageLabel = '2단계 강화 인증';
+                if (badge) badge.textContent = `⚠️ 누적 경고 ${macroWarningCount}회 (2단계 한글 인증)`;
                 stage2Box.classList.remove('hidden');
                 stage3Box.classList.add('hidden');
-                currentCaptchaPhrase2 = generateRandomStage2Phrase();
-                drawNoisyCaptchaCanvas('macro-canvas-2', currentCaptchaPhrase2, '#7dd3fc', 17);
             } else {
+                if (badge) badge.textContent = `누적 경고 ${macroWarningCount}회 (1단계 영문 인증)`;
                 stage2Box.classList.add('hidden');
                 stage3Box.classList.add('hidden');
             }
 
-            badge.textContent = `누적 경고 ${macroWarningCount}회 (${stageLabel})`;
-            modal.classList.remove('hidden');
-            setTimeout(() => input1.focus(), 50);
-            playTone(220, 'sawtooth', 0.25, 0.2);
+            if (modal) {
+                modal.classList.remove('hidden');
+                setTimeout(() => input1 && input1.focus(), 50);
+            }
         }
 
         function verifyHumanClick(e) {
@@ -882,11 +789,13 @@
                 openMacroCaptchaModal(false);
                 return false;
             }
-            if (!e || e.isTrusted === false) {
+            // 1. 비신뢰 이벤트 및 마우스 클릭 후 Enter/Space 꾹 누르기 꼼수(e.detail === 0, 좌표 0,0) 즉시 차단
+            if (!e || e.isTrusted === false || e.detail === 0 || (e.clientX === 0 && e.clientY === 0)) {
                 openMacroCaptchaModal(true);
                 return false;
             }
 
+            // 2. 초고속 비인간 매크로(초당 20회 초과)만 차단 (사람 손 마우스 떨기 12~18 CPS는 정상 허용)
             const now = performance.now();
             recentClickTimestamps.push(now);
             recentClickTimestamps = recentClickTimestamps.filter((t) => now - t <= 1000);
@@ -895,14 +804,25 @@
                 return false;
             }
 
+            // 3. 단 1픽셀도 안 움직이고(stationary) 기계적으로 동일한 ms 간격으로 누르는 오토클리커만 정밀 탐지
+            const curX = Math.round(e.clientX);
+            const curY = Math.round(e.clientY);
+            const isSamePixel = lastClickCoord && lastClickCoord.x === curX && lastClickCoord.y === curY;
+            if (isSamePixel) {
+                stationaryClickStreak++;
+            } else {
+                stationaryClickStreak = 0;
+            }
+            lastClickCoord = { x: curX, y: curY };
+
             if (lastValidClickTime > 0) {
                 const interval = now - lastValidClickTime;
 
                 if (interval > 3000) {
                     baseIntervalMs = null;
                     identicalIntervalStreak = 0;
-                    fastJitterStreak = 0;
                     teleportClickStreak = 0;
+                    stationaryClickStreak = 0;
                 } else {
                     if (baseIntervalMs === null) {
                         baseIntervalMs = interval;
@@ -914,13 +834,7 @@
                         identicalIntervalStreak = 1;
                     }
 
-                    if (interval <= 160) {
-                        fastJitterStreak++;
-                    } else if (interval >= 280) {
-                        fastJitterStreak = 0;
-                    }
-
-                    if (pointerMoveCountSinceLastClick === 0) {
+                    if (pointerMoveCountSinceLastClick === 0 && isSamePixel) {
                         teleportClickStreak++;
                     } else {
                         teleportClickStreak = 0;
@@ -928,11 +842,11 @@
                     pointerMoveCountSinceLastClick = 0;
 
                     if (
-                        identicalIntervalStreak >= IDENTICAL_INTERVAL_LIMIT ||
-                        fastJitterStreak >= JITTER_STREAK_LIMIT ||
-                        teleportClickStreak >= 14
+                        (identicalIntervalStreak >= IDENTICAL_INTERVAL_LIMIT && stationaryClickStreak >= 10) ||
+                        teleportClickStreak >= 45
                     ) {
                         teleportClickStreak = 0;
+                        stationaryClickStreak = 0;
                         openMacroCaptchaModal(true);
                         return false;
                     }
@@ -978,7 +892,7 @@
             });
         }
 
-        // --- 4. 5m × 5m Grid Math (Original LAT_STEP = 0.000045 Preserved!) ---
+        // --- 4. 5m × 5m Grid Math ---
         const LAT_STEP = 0.000045;
 
         function getLngStep(lat) {
@@ -1280,7 +1194,7 @@
             }
         }
 
-        // --- 6. Account Auth (HTTPS WebCrypto + HTTP Pure-JS SHA-256 Fallback!) ---
+        // --- 6. Account Auth ---
         function sha256Fallback(ascii) {
             function rightRotate(value, amount) {
                 return (value >>> amount) | (value << (32 - amount));
@@ -2079,7 +1993,14 @@
             });
 
             const btnClick = document.getElementById('btn-click-conquer');
+            btnClick.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
             btnClick.addEventListener('click', (e) => {
+                btnClick.blur();
                 if (!selectedCell) return;
                 const existing = territories[selectedCell.id];
                 if (existing && existing.owner === playerProfile.nickname) return;
@@ -2225,37 +2146,25 @@
                 const input3 = document.getElementById('input-macro-captcha-3').value.trim();
                 const errEl = document.getElementById('macro-captcha-error');
 
-                const passStage1 = currentCaptchaCode1 && input1 === currentCaptchaCode1.toLowerCase();
-                const passStage2 = macroWarningCount < 3 || (currentCaptchaPhrase2 && input2 === currentCaptchaPhrase2);
-                const passStage3 = macroWarningCount <= 5 || (currentHardHangul && input3 === currentHardHangul);
+                const passStage1 = input1 === 'imnoauto';
+                const passStage2 = macroWarningCount < 3 || input2 === '나는 오토가 아닙니다';
+                const passStage3 = macroWarningCount <= 5 || input3 === currentHardHangul;
 
                 if (passStage1 && passStage2 && passStage3) {
                     isMacroLocked = false;
                     identicalIntervalStreak = 0;
-                    fastJitterStreak = 0;
                     teleportClickStreak = 0;
+                    stationaryClickStreak = 0;
+                    lastClickCoord = null;
                     rapidSwitchStreak = 0;
                     recentClickTimestamps = [];
                     baseIntervalMs = null;
                     lastValidClickTime = 0;
-                    currentCaptchaCode1 = '';
-                    currentCaptchaPhrase2 = '';
-                    currentHardHangul = '';
                     errEl.classList.add('hidden');
                     document.getElementById('macro-captcha-modal').classList.add('hidden');
                     playTone(660, 'sine', 0.14, 0.18);
-                    showToast('✅ Canvas 보안 인증 완료! 다시 점령을 계속할 수 있습니다.');
+                    showToast('✅ 인증 완료! 다시 점령을 계속할 수 있습니다.');
                 } else {
-                    currentCaptchaCode1 = generateRandomAlphaNumCode(6);
-                    drawNoisyCaptchaCanvas('macro-canvas-1', currentCaptchaCode1, '#fde047', 22);
-                    if (macroWarningCount >= 3) {
-                        currentCaptchaPhrase2 = generateRandomStage2Phrase();
-                        drawNoisyCaptchaCanvas('macro-canvas-2', currentCaptchaPhrase2, '#7dd3fc', 17);
-                    }
-                    if (macroWarningCount > 5) {
-                        currentHardHangul = generateHardHangul4();
-                        drawNoisyCaptchaCanvas('macro-hard-hangul-target', currentHardHangul, '#f0abfc', 24);
-                    }
                     errEl.classList.remove('hidden');
                     playTone(180, 'sawtooth', 0.18, 0.18);
                 }
