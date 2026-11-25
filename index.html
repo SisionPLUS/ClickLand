@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="클릭땅">
@@ -122,7 +123,7 @@
     <!-- Fullscreen Map -->
     <div id="map"></div>
 
-    <!-- Top Responsive HUD Container (No Overlapping on Mobile!) -->
+    <!-- Top Responsive HUD Container -->
     <div class="fixed top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 z-[1000] pointer-events-none flex flex-col gap-2">
         
         <!-- Row 1: Player Profile + Search Bar -->
@@ -198,7 +199,7 @@
             </div>
         </div>
 
-        <!-- Row 2: Real-time TOP 5 Leaderboard (Collapsible on Mobile so it NEVER covers Search!) -->
+        <!-- Row 2: Real-time TOP 5 Leaderboard -->
         <div class="pointer-events-auto self-start bg-slate-900/90 backdrop-blur-md text-white px-3 py-2 sm:p-3 rounded-2xl shadow-xl border border-slate-700/80 w-60 sm:w-64">
             <div id="leaderboard-header" class="flex items-center justify-between cursor-pointer select-none">
                 <span class="font-game text-xs sm:text-sm text-amber-400 flex items-center gap-1 whitespace-nowrap">🏆 실시간 영토 TOP 5</span>
@@ -213,7 +214,7 @@
         </div>
     </div>
 
-    <!-- Real-time Global Chat Box (Bottom Left, Compact on Mobile) -->
+    <!-- Real-time Global Chat Box -->
     <div id="chat-widget" class="fixed bottom-2.5 left-2.5 sm:bottom-4 sm:left-3 z-[1000] pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white rounded-2xl shadow-xl border border-slate-700/80 w-[calc(100%-64px)] max-w-[290px] sm:w-80 overflow-hidden transition-all">
         <div id="chat-header" class="flex items-center justify-between px-3 py-2 bg-slate-800/90 border-b border-slate-700/80 cursor-pointer">
             <div class="flex items-center gap-1.5 min-w-0">
@@ -588,7 +589,7 @@
         let currentCaptchaPhrase2 = '';
         let currentHardHangul = '';
 
-        // --- Human-Readable Device & OS Descriptor (e.g., "S26(Android16)", "Windows11(24H2)") ---
+        // --- Human-Readable Device & OS Descriptor ---
         function mapSamsungModelToMarketingName(rawModel) {
             if (!rawModel) return '';
             const m = rawModel.toUpperCase().trim();
@@ -977,12 +978,12 @@
             });
         }
 
-        // --- 4. 5m × 5m Grid Math & Landmark Calculation ---
-        const LAT_STEP = 5 / 111320;
+        // --- 4. 5m × 5m Grid Math (Original LAT_STEP = 0.000045 Preserved!) ---
+        const LAT_STEP = 0.000045;
 
         function getLngStep(lat) {
             const cosLat = Math.max(0.15, Math.cos((lat * Math.PI) / 180));
-            return 5 / (111320 * cosLat);
+            return LAT_STEP / cosLat;
         }
 
         function getCellFromLatLng(lat, lng) {
@@ -1137,6 +1138,7 @@
             if (!map) return;
             const zoom = map.getZoom();
             const bounds = map.getBounds();
+            const padBounds = bounds.pad(0.15);
 
             document.getElementById('hud-zoom-badge').textContent = `줌 ${zoom}`;
 
@@ -1155,17 +1157,15 @@
             const westBound = bounds.getWest();
             const eastBound = bounds.getEast();
 
+            // 1) 점령된 모든 영토 렌더링 (저장된 lat/lng 또는 cellId 기준)
             Object.entries(territories).forEach(([cellId, data]) => {
                 if (!data || !data.owner) return;
-                const cell = getCellFromId(cellId);
+                const cell = (typeof data.lat === 'number' && typeof data.lng === 'number')
+                    ? getCellFromLatLng(data.lat, data.lng)
+                    : getCellFromId(cellId);
                 if (!cell) return;
 
-                if (
-                    cell.north < southBound ||
-                    cell.south > northBound ||
-                    cell.east < westBound ||
-                    cell.west > eastBound
-                ) {
+                if (!padBounds.contains([cell.centerLat, cell.centerLng])) {
                     return;
                 }
 
@@ -1173,10 +1173,10 @@
                 const rect = L.rectangle(
                     [[cell.south, cell.west], [cell.north, cell.east]],
                     {
-                        color: isSelected ? '#ffffff' : data.color,
+                        color: isSelected ? '#fde047' : '#ffffff',
                         weight: isSelected ? 3 : zoom >= 17 ? 1.5 : 0.8,
-                        fillColor: data.color,
-                        fillOpacity: zoom >= 17 ? 0.56 : 0.72,
+                        fillColor: data.color || '#ef4444',
+                        fillOpacity: zoom >= 17 ? 0.72 : 0.85,
                         interactive: true
                     }
                 );
@@ -1204,6 +1204,7 @@
 
             if (zoom < GRID_MIN_ZOOM) return;
 
+            // 2) 미점령 5m × 5m 격자 렌더링
             const startRow = Math.floor(southBound / LAT_STEP);
             const endRow = Math.floor(northBound / LAT_STEP);
             const midLat = (southBound + northBound) / 2;
@@ -2068,14 +2069,14 @@
             });
 
             document.getElementById('btn-jump-my-land').addEventListener('click', () => {
-                const myEntry = Object.entries(territories).find(([, d]) => d && d.owner === playerProfile.nickname);
-                if (!myEntry) {
+                const myLands = Object.values(territories).filter(t => t && t.owner === playerProfile.nickname);
+                if (myLands.length === 0) {
                     showToast('아직 점령한 내 영토가 없습니다! 지도의 빈 칸을 클릭해 점령해 보세요.');
                     return;
                 }
-                const cell = getCellFromId(myEntry[0]);
-                if (cell) {
-                    map.setView([cell.centerLat, cell.centerLng], 19, { animate: true });
+                const target = myLands[myLands.length - 1];
+                if (typeof target.lat === 'number' && typeof target.lng === 'number') {
+                    map.setView([target.lat, target.lng], 19, { animate: true });
                     showToast('🚩 내 영토 위치로 이동했습니다!');
                 }
             });
