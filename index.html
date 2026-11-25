@@ -40,7 +40,7 @@
             background: #e2e8f0;
         }
         .leaflet-control-attribution {
-            font-size: 10px !important;
+            font-size: 9px !important;
             background: rgba(255, 255, 255, 0.78) !important;
             border-radius: 6px 0 0 0;
         }
@@ -49,14 +49,20 @@
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
             border-radius: 14px !important;
             overflow: hidden;
-            margin-bottom: 24px !important;
-            margin-right: 16px !important;
+            margin-bottom: 64px !important;
+            margin-right: 12px !important;
+        }
+        @media (min-width: 640px) {
+            .leaflet-control-zoom {
+                margin-bottom: 24px !important;
+                margin-right: 16px !important;
+            }
         }
         .leaflet-control-zoom a {
-            width: 42px !important;
-            height: 42px !important;
-            line-height: 42px !important;
-            font-size: 20px !important;
+            width: 38px !important;
+            height: 38px !important;
+            line-height: 38px !important;
+            font-size: 18px !important;
             font-weight: 800 !important;
             color: #1e293b !important;
             background: rgba(255, 255, 255, 0.95) !important;
@@ -116,111 +122,119 @@
     <!-- Fullscreen Map -->
     <div id="map"></div>
 
-    <!-- Top HUD Bar -->
-    <div class="fixed top-3 left-3 right-3 z-[1000] pointer-events-none flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2.5">
-        <!-- Player Profile & Server Status Card -->
-        <div class="pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white px-3.5 py-2.5 rounded-2xl shadow-xl border border-slate-700/80 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5">
-                <div id="hud-avatar" class="w-10 h-10 rounded-xl flex items-center justify-center font-game text-lg text-white shadow-inner border-2 border-white/80 bg-amber-500">
-                    ?
+    <!-- Top Responsive HUD Container (No Overlapping on Mobile!) -->
+    <div class="fixed top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3 z-[1000] pointer-events-none flex flex-col gap-2">
+        
+        <!-- Row 1: Player Profile + Search Bar -->
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2">
+            
+            <!-- Player Profile & Server Status Card -->
+            <div class="pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl shadow-xl border border-slate-700/80 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <div id="hud-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-game text-base sm:text-lg text-white shadow-inner border-2 border-white/80 bg-amber-500 shrink-0">
+                        ?
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <span id="hud-nickname" class="font-game text-sm sm:text-base text-amber-300 tracking-wide truncate max-w-[95px] sm:max-w-[140px]">플레이어</span>
+                            <span id="server-status-badge" class="text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 whitespace-nowrap shrink-0">
+                                🟡 연결 중
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5 mt-0.5 text-[11px] sm:text-xs text-slate-300 whitespace-nowrap">
+                            <span>내 영토: <strong id="hud-my-count" class="text-emerald-400 text-xs sm:text-sm">0</strong>칸</span>
+                            <button id="btn-jump-my-land" class="px-2 py-0.5 rounded-lg bg-emerald-600/85 hover:bg-emerald-500 text-white font-bold text-[10px] sm:text-[11px] transition cursor-pointer whitespace-nowrap">
+                                내 땅 이동
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <span id="hud-nickname" class="font-game text-base text-amber-300 tracking-wide">플레이어</span>
-                        <span id="server-status-badge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                            🟡 서버 연결 중...
-                        </span>
-                    </div>
-                    <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-300">
-                        <span>내 영토: <strong id="hud-my-count" class="text-emerald-400 text-sm">0</strong> 칸</span>
-                        <button id="btn-jump-my-land" class="px-2 py-0.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white font-bold text-[11px] transition cursor-pointer">
-                            내 땅으로 이동
-                        </button>
-                    </div>
+
+                <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                    <button id="btn-invite-friend" title="친구 초대 문자/링크 공유" class="px-2 sm:px-2.5 h-8 sm:h-9 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px] sm:text-xs flex items-center justify-center gap-1 transition cursor-pointer shadow whitespace-nowrap">
+                        📩 초대
+                    </button>
+                    <button id="btn-toggle-sound" title="효과음 켜기/끄기" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-sm sm:text-base transition cursor-pointer shrink-0">
+                        🔊
+                    </button>
+                    <button id="btn-open-settings" title="설정 / 알림 / 계정 전환" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-sm sm:text-base transition cursor-pointer shrink-0">
+                        ⚙️
+                    </button>
                 </div>
             </div>
 
-            <div class="flex items-center gap-1.5">
-                <button id="btn-invite-friend" title="친구 초대 문자/링크 공유" class="px-2.5 h-9 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1 transition cursor-pointer shadow">
-                    📩 초대
-                </button>
-                <button id="btn-toggle-sound" title="효과음 켜기/끄기" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-base transition cursor-pointer">
-                    🔊
-                </button>
-                <button id="btn-open-settings" title="설정 / 알림 / 계정 전환" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/70 flex items-center justify-center text-base transition cursor-pointer">
-                    ⚙️
-                </button>
+            <!-- Search & Quick Jump Controls -->
+            <div class="pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white p-2 sm:p-2.5 rounded-2xl shadow-xl border border-slate-700/80 flex flex-col gap-1.5 sm:gap-2 w-full lg:max-w-md">
+                <form id="search-form" class="flex items-center gap-1.5">
+                    <input id="search-input" type="text" placeholder="전 세계 도시/장소 검색 (예: 강남역, 에펠탑)"
+                        class="flex-1 min-w-0 bg-slate-800/90 text-white placeholder-slate-400 text-xs px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-slate-600/80 focus:outline-none focus:border-amber-400" />
+                    <button type="submit" class="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shrink-0 whitespace-nowrap">
+                        이동
+                    </button>
+                </form>
+                <div class="flex items-center gap-1 sm:gap-1.5">
+                    <select id="preset-select" class="flex-1 min-w-0 bg-slate-800 text-white text-[11px] sm:text-xs font-bold px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-xl border border-slate-600/80 focus:outline-none focus:border-amber-400 cursor-pointer truncate">
+                        <option value="37.5665,126.9780,19">🇰🇷 서울 시청 광장</option>
+                        <option value="37.4979,127.0276,19">🇰🇷 강남역 특구 (150클릭)</option>
+                        <option value="37.5796,126.9770,19">🇰🇷 경복궁 특구 (150클릭)</option>
+                        <option value="37.5512,126.9882,19">🇰🇷 N서울타워 특구</option>
+                        <option value="37.4602,126.4407,19">🇰🇷 인천공항 특구</option>
+                        <option value="35.6595,139.7004,19">🇯🇵 도쿄 시부야 특구</option>
+                        <option value="35.6586,139.7454,19">🇯🇵 도쿄 타워 특구</option>
+                        <option value="40.7580,-73.9855,19">🇺🇸 뉴욕 타임스스퀘어</option>
+                        <option value="48.8584,2.2945,19">🇫🇷 파리 에펠탑 특구</option>
+                        <option value="51.5007,-0.1246,19">🇬🇧 런던 빅벤 특구</option>
+                    </select>
+                    <button id="btn-my-gps" class="px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] sm:text-xs transition cursor-pointer shrink-0 whitespace-nowrap">
+                        📍 내 위치
+                    </button>
+                    <button id="btn-toggle-map-style" class="px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] sm:text-xs transition cursor-pointer shrink-0 whitespace-nowrap">
+                        🛰️ <span id="map-style-label">위성</span>
+                    </button>
+                    <span id="hud-zoom-badge" class="px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-xl bg-slate-800 border border-slate-600/80 text-amber-300 font-extrabold text-[11px] sm:text-xs shrink-0 whitespace-nowrap">
+                        줌 19
+                    </span>
+                </div>
             </div>
         </div>
 
-        <!-- Search & Quick Jump Controls -->
-        <div class="pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white p-2.5 rounded-2xl shadow-xl border border-slate-700/80 flex flex-col gap-2 max-w-md w-full sm:w-auto">
-            <form id="search-form" class="flex items-center gap-1.5">
-                <input id="search-input" type="text" placeholder="전 세계 도시/장소 검색 (예: 강남역, 에펠탑, 시부야)"
-                    class="flex-1 bg-slate-800/90 text-white placeholder-slate-400 text-xs px-3 py-2 rounded-xl border border-slate-600/80 focus:outline-none focus:border-amber-400" />
-                <button type="submit" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shrink-0">
-                    이동
-                </button>
-            </form>
-            <div class="flex items-center gap-1.5 flex-wrap">
-                <select id="preset-select" class="flex-1 min-w-[155px] bg-slate-800 text-white text-xs font-bold px-2.5 py-2 rounded-xl border border-slate-600/80 focus:outline-none focus:border-amber-400 cursor-pointer">
-                    <option value="37.5665,126.9780,19">🇰🇷 서울 시청 광장 (기본)</option>
-                    <option value="37.4979,127.0276,19">🇰🇷 서울 강남역 특구 (150클릭)</option>
-                    <option value="37.5796,126.9770,19">🇰🇷 서울 경복궁 특구 (150클릭)</option>
-                    <option value="37.5512,126.9882,19">🇰🇷 N서울타워 특구 (150클릭)</option>
-                    <option value="37.4602,126.4407,19">🇰🇷 인천국제공항 특구 (150클릭)</option>
-                    <option value="35.6595,139.7004,19">🇯🇵 도쿄 시부야 스크램블 (150클릭)</option>
-                    <option value="35.6586,139.7454,19">🇯🇵 도쿄 타워 특구 (150클릭)</option>
-                    <option value="40.7580,-73.9855,19">🇺🇸 뉴욕 타임스스퀘어 (150클릭)</option>
-                    <option value="48.8584,2.2945,19">🇫🇷 파리 에펠탑 특구 (150클릭)</option>
-                    <option value="51.5007,-0.1246,19">🇬🇧 런던 빅벤 특구 (150클릭)</option>
-                </select>
-                <button id="btn-my-gps" class="px-2.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition cursor-pointer shrink-0">
-                    📍 내 위치
-                </button>
-                <button id="btn-toggle-map-style" class="px-2.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer shrink-0">
-                    🛰️ <span id="map-style-label">위성지도</span>
-                </button>
-                <span id="hud-zoom-badge" class="px-2.5 py-2 rounded-xl bg-slate-800 border border-slate-600/80 text-amber-300 font-extrabold text-xs shrink-0">
-                    줌 19
-                </span>
+        <!-- Row 2: Real-time TOP 5 Leaderboard (Collapsible on Mobile so it NEVER covers Search!) -->
+        <div class="pointer-events-auto self-start bg-slate-900/90 backdrop-blur-md text-white px-3 py-2 sm:p-3 rounded-2xl shadow-xl border border-slate-700/80 w-60 sm:w-64">
+            <div id="leaderboard-header" class="flex items-center justify-between cursor-pointer select-none">
+                <span class="font-game text-xs sm:text-sm text-amber-400 flex items-center gap-1 whitespace-nowrap">🏆 실시간 영토 TOP 5</span>
+                <div class="flex items-center gap-1.5 whitespace-nowrap">
+                    <span class="text-[11px] text-slate-400">총 <strong id="hud-total-claimed" class="text-white">0</strong>칸</span>
+                    <span id="btn-toggle-leaderboard" class="text-[11px] font-bold text-slate-300 px-1">▼</span>
+                </div>
+            </div>
+            <div id="leaderboard-list" class="flex flex-col gap-1.5 text-xs mt-2">
+                <div class="text-slate-400 text-center py-2">불러오는 중...</div>
             </div>
         </div>
     </div>
 
-    <!-- Real-time TOP 5 Leaderboard -->
-    <div class="fixed top-[148px] sm:top-[106px] left-3 z-[1000] pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white p-3 rounded-2xl shadow-xl border border-slate-700/80 w-64">
-        <div class="flex items-center justify-between mb-2">
-            <span class="font-game text-sm text-amber-400 flex items-center gap-1">🏆 실시간 영토 TOP 5</span>
-            <span class="text-[11px] text-slate-400">총 <strong id="hud-total-claimed" class="text-white">0</strong>칸</span>
-        </div>
-        <div id="leaderboard-list" class="flex flex-col gap-1.5 text-xs">
-            <div class="text-slate-400 text-center py-2">불러오는 중...</div>
-        </div>
-    </div>
-
-    <!-- Real-time Global Chat Box (Bottom Left) -->
-    <div id="chat-widget" class="fixed bottom-4 left-3 z-[1000] pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white rounded-2xl shadow-xl border border-slate-700/80 w-72 sm:w-80 overflow-hidden transition-all">
-        <div id="chat-header" class="flex items-center justify-between px-3.5 py-2 bg-slate-800/90 border-b border-slate-700/80 cursor-pointer">
-            <div class="flex items-center gap-1.5">
-                <span class="text-sm">💬</span>
-                <span class="font-game text-xs text-amber-300 tracking-wide">실시간 전체 채팅</span>
-                <span id="chat-admin-badge" class="hidden text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500/25 text-rose-300 border border-rose-400/50">
-                    👑 관리자 모드
+    <!-- Real-time Global Chat Box (Bottom Left, Compact on Mobile) -->
+    <div id="chat-widget" class="fixed bottom-2.5 left-2.5 sm:bottom-4 sm:left-3 z-[1000] pointer-events-auto bg-slate-900/90 backdrop-blur-md text-white rounded-2xl shadow-xl border border-slate-700/80 w-[calc(100%-64px)] max-w-[290px] sm:w-80 overflow-hidden transition-all">
+        <div id="chat-header" class="flex items-center justify-between px-3 py-2 bg-slate-800/90 border-b border-slate-700/80 cursor-pointer">
+            <div class="flex items-center gap-1.5 min-w-0">
+                <span class="text-xs sm:text-sm">💬</span>
+                <span class="font-game text-xs text-amber-300 tracking-wide whitespace-nowrap">실시간 전체 채팅</span>
+                <span id="chat-admin-badge" class="hidden text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500/25 text-rose-300 border border-rose-400/50 whitespace-nowrap">
+                    👑 관리자
                 </span>
             </div>
-            <button type="button" id="btn-toggle-chat" class="text-xs font-bold text-slate-300 hover:text-white px-1.5">
+            <button type="button" id="btn-toggle-chat" class="text-xs font-bold text-slate-300 hover:text-white px-1.5 shrink-0">
                 ▼
             </button>
         </div>
         <div id="chat-body" class="flex flex-col">
-            <div id="chat-messages" class="h-36 overflow-y-auto px-3 py-2 flex flex-col gap-1.5 text-xs select-text">
+            <div id="chat-messages" class="h-28 sm:h-36 overflow-y-auto px-3 py-2 flex flex-col gap-1.5 text-xs select-text">
                 <div class="text-slate-400 text-[11px] text-center py-2">실시간 채팅에 연결되었습니다!</div>
             </div>
             <form id="chat-form" class="flex items-center gap-1.5 p-2 border-t border-slate-700/80 bg-slate-950/60">
                 <input id="chat-input" type="text" maxlength="120" placeholder="채팅 입력..."
-                    class="flex-1 bg-slate-800 text-white placeholder-slate-400 text-xs px-2.5 py-1.5 rounded-xl border border-slate-600/80 focus:outline-none focus:border-amber-400" />
-                <button type="submit" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shrink-0">
+                    class="flex-1 min-w-0 bg-slate-800 text-white placeholder-slate-400 text-xs px-2.5 py-1.5 rounded-xl border border-slate-600/80 focus:outline-none focus:border-amber-400" />
+                <button type="submit" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shrink-0 whitespace-nowrap">
                     전송
                 </button>
             </form>
@@ -228,13 +242,13 @@
     </div>
 
     <!-- Global Live Conquest Ticker -->
-    <div id="live-ticker" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[1200] pointer-events-none bg-slate-950/90 text-white border border-amber-400/70 px-4 py-2 rounded-full shadow-2xl text-xs font-extrabold whitespace-nowrap">
+    <div id="live-ticker" class="hidden fixed bottom-16 sm:bottom-24 left-1/2 -translate-x-1/2 z-[1200] pointer-events-none bg-slate-950/90 text-white border border-amber-400/70 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-2xl text-[11px] sm:text-xs font-extrabold whitespace-nowrap max-w-[92vw] truncate">
         ⚔️ 실시간 알림
     </div>
 
     <!-- Zoom Prompt Banner (Shown when zoom < 17) -->
-    <div id="zoom-prompt-banner" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000] bg-rose-600/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl border-2 border-rose-300/60 text-center max-w-xs w-[90%]">
-        <div class="font-game text-base mb-1.5">확대하면 5m × 5m 격자가 나타납니다</div>
+    <div id="zoom-prompt-banner" class="hidden fixed bottom-14 sm:bottom-6 left-1/2 -translate-x-1/2 z-[1000] bg-rose-600/95 backdrop-blur-md text-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-2xl shadow-2xl border-2 border-rose-300/60 text-center max-w-xs w-[90%]">
+        <div class="font-game text-sm sm:text-base mb-1">확대하면 5m × 5m 격자가 나타납니다</div>
         <div class="text-[11px] text-rose-100 mb-2">줌 22 미만에서는 점령 색상만 깔끔하게 표시됩니다</div>
         <button id="btn-auto-zoom-in" class="w-full py-2 px-4 rounded-xl bg-white text-rose-600 font-extrabold text-xs shadow hover:bg-rose-50 active:scale-95 transition cursor-pointer">
             5m × 5m 그리드 크기로 바로 확대하기
@@ -242,7 +256,7 @@
     </div>
 
     <!-- Active Tile Conquest Drawer (Bottom Center) -->
-    <div id="conquest-panel" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[1001] bg-slate-900/95 backdrop-blur-lg text-white p-4 rounded-3xl shadow-2xl border-2 border-amber-400/80 w-[92%] max-w-sm">
+    <div id="conquest-panel" class="hidden fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-[1002] bg-slate-900/95 backdrop-blur-lg text-white p-3.5 sm:p-4 rounded-3xl shadow-2xl border-2 border-amber-400/80 w-[94%] max-w-sm">
         <div class="flex items-start justify-between gap-2 mb-2">
             <div>
                 <div class="flex items-center gap-1.5 flex-wrap">
@@ -253,21 +267,21 @@
                         🏛️ 유명 명소 특구
                     </span>
                 </div>
-                <h3 id="panel-title" class="font-game text-lg text-white mt-1">5m × 5m 구역 점령전</h3>
+                <h3 id="panel-title" class="font-game text-base sm:text-lg text-white mt-1">5m × 5m 구역 점령전</h3>
                 <p id="panel-coords" class="text-[11px] text-slate-400 font-mono">37.514500, 126.804500</p>
             </div>
-            <button id="btn-close-panel" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm flex items-center justify-center cursor-pointer">
+            <button id="btn-close-panel" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm flex items-center justify-center cursor-pointer shrink-0">
                 ✕
             </button>
         </div>
 
         <!-- Progress Bar -->
-        <div class="bg-slate-800 rounded-2xl p-3 border border-slate-700 mb-3">
+        <div class="bg-slate-800 rounded-2xl p-2.5 sm:p-3 border border-slate-700 mb-2.5 sm:mb-3">
             <div class="flex items-center justify-between text-xs font-extrabold mb-1.5">
                 <span class="text-slate-300">점령 게이지</span>
-                <span id="panel-progress-text" class="text-amber-300 text-sm">0 / 50 클릭 (0%)</span>
+                <span id="panel-progress-text" class="text-amber-300 text-xs sm:text-sm">0 / 50 클릭 (0%)</span>
             </div>
-            <div class="w-full h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-700">
+            <div class="w-full h-3 sm:h-3.5 bg-slate-950 rounded-full overflow-hidden border border-slate-700">
                 <div id="panel-progress-bar" class="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-100 rounded-full" style="width: 0%;"></div>
             </div>
             <div id="panel-siege-info" class="text-[11px] text-slate-400 mt-1.5">
@@ -276,7 +290,7 @@
         </div>
 
         <!-- Click Attack Button -->
-        <button id="btn-click-conquer" type="button" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-game text-xl shadow-lg shadow-orange-500/30 transition cursor-pointer btn-pulse">
+        <button id="btn-click-conquer" type="button" class="w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-game text-lg sm:text-xl shadow-lg shadow-orange-500/30 transition cursor-pointer btn-pulse">
             👆 광클해서 점령하기!
         </button>
     </div>
@@ -383,7 +397,7 @@
                 </div>
 
                 <p class="text-[10px] text-slate-400 text-center leading-tight">
-                    부정 행위 및 다중 계정 방지를 위해 접속 IP와 기기 식별자가 기록됩니다.
+                    부정 행위 및 다중 계정 방지를 위해 접속 IP와 기기 정보가 기록됩니다.
                 </p>
 
                 <div id="auth-error-box" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-3 py-2 rounded-xl">
@@ -415,41 +429,44 @@
             </p>
 
             <form id="macro-captcha-form" class="mt-3.5 flex flex-col gap-3 text-left">
-                <!-- Stage 1: Always Required -->
+                <!-- Stage 1: Always Required (Dynamic Canvas Image) -->
                 <div>
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
-                        <span>1. 영문 인증 코드</span>
-                        <span class="font-mono text-amber-300 font-black text-xs select-none">imnoauto</span>
+                        <span>1. 보안 이미지 문자 (대소문자 무관)</span>
+                        <span class="text-amber-300 font-bold text-[10px]">DOM 추출 차단됨</span>
                     </div>
+                    <canvas id="macro-canvas-1" width="260" height="46" class="w-full h-11 rounded-xl border border-slate-600 mb-1.5 bg-slate-950"></canvas>
                     <input id="input-macro-captcha-1" type="text" autocomplete="off" spellcheck="false"
-                        placeholder="imnoauto 입력"
+                        placeholder="위 이미지 속 6자리 코드 입력"
                         class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-emerald-400 focus:outline-none text-center font-mono text-sm font-bold text-white" />
                 </div>
 
-                <!-- Stage 2: Required when warningCount >= 3 -->
+                <!-- Stage 2: Required when warningCount >= 3 (Dynamic Canvas Phrase) -->
                 <div id="macro-stage-2-box" class="hidden">
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
                         <span>2. 한글 서약 문구 (3회 이상 경고)</span>
-                        <span class="text-sky-300 font-black text-xs select-none">나는 오토가 아닙니다</span>
+                        <span class="text-sky-300 font-bold text-[10px]">띄어쓰기 포함</span>
                     </div>
+                    <canvas id="macro-canvas-2" width="260" height="46" class="w-full h-11 rounded-xl border border-slate-600 mb-1.5 bg-slate-950"></canvas>
                     <input id="input-macro-captcha-2" type="text" autocomplete="off" spellcheck="false"
-                        placeholder="나는 오토가 아닙니다"
+                        placeholder="위 이미지의 한글 문구 그대로 입력"
                         class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-sky-400 focus:outline-none text-center text-sm font-bold text-white" />
                 </div>
 
-                <!-- Stage 3: Required when warningCount > 5 -->
+                <!-- Stage 3: Required when warningCount > 5 (Hard Hangul Canvas) -->
                 <div id="macro-stage-3-box" class="hidden">
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
                         <span>3. 고난도 랜덤 한글 4글자 (6회 이상 경고)</span>
-                        <span id="macro-hard-hangul-target" class="text-fuchsia-300 font-black text-sm tracking-widest select-none">찋쉡틓녲</span>
+                        <span class="text-fuchsia-300 font-bold text-[10px]">최고난도</span>
                     </div>
+                    <canvas id="macro-hard-hangul-target" width="260" height="52" class="w-full h-12 rounded-xl border border-fuchsia-500/60 mb-1.5 bg-slate-950"></canvas>
                     <input id="input-macro-captcha-3" type="text" autocomplete="off" spellcheck="false"
-                        placeholder="위 어려운 4글자를 정확히 입력"
+                        placeholder="위 이미지의 어려운 4글자 입력"
                         class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-fuchsia-400 focus:outline-none text-center text-base font-black tracking-widest text-white" />
                 </div>
 
                 <div id="macro-captcha-error" class="hidden text-xs font-bold text-rose-400 text-center">
-                    제시된 모든 문구를 띄어쓰기까지 정확히 입력해 주세요!
+                    이미지 속 문구를 정확히 입력해 주세요!
                 </div>
                 <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-slate-950 font-game text-lg shadow-lg transition cursor-pointer mt-1">
                     ✅ 인증하고 계속 점령하기
@@ -460,6 +477,9 @@
 
     <!-- Firebase SDK & Full Game Script -->
     <script type="module">
+        // 레거시 평문 비밀번호 잔여 키 즉시 파기
+        localStorage.removeItem('wc_pass_raw');
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getDatabase, ref, onValue, set, get, push, query, limitToLast, runTransaction, update, remove } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-database.js";
 
@@ -482,18 +502,16 @@
         const ADMIN_NICKNAME = 'SisionPLUS';
         const DEFAULT_LAT = 37.5665;
         const DEFAULT_LNG = 126.9780;
-        const GRID_MIN_ZOOM = 17; // 5m × 5m 격자 표시 최소 줌 레벨
-        const LABEL_MIN_ZOOM = 22; // 줌 22 미만에서는 '~~의 땅!' 라벨을 숨기고 영토 색상만 표시
+        const GRID_MIN_ZOOM = 17;
+        const LABEL_MIN_ZOOM = 22;
         const MAX_RENDERED_CELLS = 1800;
-        const SIEGE_INCREMENT_CLICKS = 50; // 뺏길 때마다 추가되는 클릭 수
+        const SIEGE_INCREMENT_CLICKS = 50;
 
-        // 16,777,216가지 진짜 HTML HEX 색상 코드(#000000 ~ #ffffff) 랜덤 생성
         function pickRandomColor() {
             const randomInt = Math.floor(Math.random() * 0x1000000);
             return '#' + randomInt.toString(16).padStart(6, '0');
         }
 
-        // 유명 랜드마크 특구 목록 (반경 내 구역은 기본 150클릭)
         const FAMOUS_LANDMARKS = [
             { name: '서울 강남역 특구', lat: 37.4979, lng: 127.0276, radiusMeters: 450, baseClicks: 150 },
             { name: '서울 경복궁 특구', lat: 37.5796, lng: 126.9770, radiusMeters: 500, baseClicks: 150 },
@@ -520,7 +538,7 @@
         let soundEnabled = true;
         let stealAlertEnabled = localStorage.getItem('wc_steal_alert') !== 'false';
         let selectedColor = playerProfile.color;
-        let authMode = 'login'; // 'login' | 'signup'
+        let authMode = 'login';
         let territories = {};
         let isInitialSnapshotLoaded = false;
 
@@ -543,87 +561,339 @@
         let localClickProgress = {};
         let lastValidClickTime = 0;
 
-        // --- Anti-Auto-Clicker Telemetry State (15x Identical ms Interval + 3-Stage Captcha) ---
-        const IDENTICAL_INTERVAL_TOLERANCE_MS = 10; // ±10ms 이내면 동일 간격으로 간주
-        const IDENTICAL_INTERVAL_LIMIT = 15;        // 15회 이상 연속 시 경고창 발동
+        // --- Anti-Auto-Clicker Telemetry State (v2.5 Multi-Grid Bot Defense) ---
+        const IDENTICAL_INTERVAL_TOLERANCE_MS = 10;
+        const IDENTICAL_INTERVAL_LIMIT = 12;
+        const MAX_HUMAN_CPS = 11;
+        const JITTER_STREAK_LIMIT = 15;
         let baseIntervalMs = null;
         let identicalIntervalStreak = 0;
+        let fastJitterStreak = 0;
+        let recentClickTimestamps = [];
         let isMacroLocked = false;
         let macroWarningCount = 0;
-        let currentHardHangul = '찋쉡틓녲';
 
-        // 겹받침/복합모음이 섞인 읽기 어렵고 복붙 불가한 랜덤 한글 4글자 생성기
-        function generateHardHangul4() {
-            const hardPool = [
-                '찋', '쉡', '틓', '녲', '뷁', '뤩', '쉥', '뗑', '쮀', '퀭',
-                '뽩', '쓻', '흴', '낅', '좳', '풻', '멻', '켵', '둟', '슳',
-                '톧', '뻵', '잚', '홁', '댦', '욿', '팗', '묐', '츩', '놟'
-            ];
-            let res = '';
-            for (let i = 0; i < 4; i++) {
-                res += hardPool[Math.floor(Math.random() * hardPool.length)];
+        let lastConquerCompletedAt = 0;
+        let rapidSwitchStreak = 0;
+        let pointerMoveCountSinceLastClick = 0;
+        let teleportClickStreak = 0;
+
+        document.addEventListener('pointermove', (e) => {
+            if (e.isTrusted) {
+                pointerMoveCountSinceLastClick++;
             }
-            return res;
+        }, { passive: true });
+
+        let currentCaptchaCode1 = '';
+        let currentCaptchaPhrase2 = '';
+        let currentHardHangul = '';
+
+        // --- Human-Readable Device & OS Descriptor (e.g., "S26 (Android 16)", "Windows 11 (24H2)") ---
+        function mapSamsungModelToMarketingName(rawModel) {
+            if (!rawModel) return '';
+            const m = rawModel.toUpperCase().trim();
+            const samsungMap = {
+                'SM-S941': 'S26',
+                'SM-S946': 'S26+',
+                'SM-S948': 'S26 Ultra',
+                'SM-S931': 'S25',
+                'SM-S936': 'S25+',
+                'SM-S938': 'S25 Ultra',
+                'SM-S921': 'S24',
+                'SM-S926': 'S24+',
+                'SM-S928': 'S24 Ultra',
+                'SM-S911': 'S23',
+                'SM-S916': 'S23+',
+                'SM-S918': 'S23 Ultra',
+                'SM-F956': 'Z Fold6',
+                'SM-F741': 'Z Flip6',
+                'SM-F966': 'Z Fold7',
+                'SM-F751': 'Z Flip7'
+            };
+            for (const [prefix, label] of Object.entries(samsungMap)) {
+                if (m.startsWith(prefix)) return label;
+            }
+            return rawModel;
         }
 
-        function openMacroCaptchaModal(isNewTrigger = true) {
-            if (isNewTrigger && !isMacroLocked) {
+        function mapWindowsBuildToRelease(platformVersion) {
+            if (!platformVersion) return 'Windows';
+            const parts = platformVersion.split('.').map((n) => parseInt(n, 10));
+            const major = parts[0] || 0;
+            const build = parts[2] || 0;
+
+            if (major >= 13) {
+                if (build >= 26200) return 'Windows 11 (25H2)';
+                if (build >= 26100) return 'Windows 11 (24H2)';
+                if (build >= 22631) return 'Windows 11 (23H2)';
+                if (build >= 22621) return 'Windows 11 (22H2)';
+                return 'Windows 11';
+            }
+            if (major >= 1) {
+                if (build >= 19045) return 'Windows 10 (22H2)';
+                if (build >= 19044) return 'Windows 10 (21H2)';
+                if (build >= 19043) return 'Windows 10 (21H1)';
+                if (build >= 19042) return 'Windows 10 (20H2)';
+                return 'Windows 10';
+            }
+            return 'Windows';
+        }
+
+        async function getReadableDeviceInfo() {
+            const ua = navigator.userAgent || '';
+            let model = '';
+            let platform = '';
+            let platformVersion = '';
+
+            if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+                try {
+                    const hints = await navigator.userAgentData.getHighEntropyValues([
+                        'model',
+                        'platform',
+                        'platformVersion'
+                    ]);
+                    model = hints.model || '';
+                    platform = hints.platform || navigator.userAgentData.platform || '';
+                    platformVersion = hints.platformVersion || '';
+                } catch (e) {}
+            }
+
+            // 1. Android 기기: 예) S26(Android16) / SM-S928N(Android15)
+            if (/Android/i.test(ua) || platform.toLowerCase() === 'android') {
+                const androidVerMatch = ua.match(/Android\s+([0-9.]+)/i);
+                const androidVer = (platformVersion && platformVersion.split('.')[0]) || (androidVerMatch ? androidVerMatch[1].split('.')[0] : '');
+                let rawModel = model;
+                if (!rawModel) {
+                    const uaModelMatch = ua.match(/Android[^;]+;\s*([^;)]+?)(?:\s+Build\/|\))/i);
+                    if (uaModelMatch && uaModelMatch[1] && uaModelMatch[1].trim().toUpperCase() !== 'K') {
+                        rawModel = uaModelMatch[1].trim();
+                    }
+                }
+                const friendlyModel = mapSamsungModelToMarketingName(rawModel) || 'Android';
+                return androidVer ? `${friendlyModel}(Android${androidVer})` : `${friendlyModel}(Android)`;
+            }
+
+            // 2. iPhone / iPad: 예) iPhone(iOS18.2) / iPad(iPadOS18.1)
+            if (/iPhone|iPad|iPod/i.test(ua)) {
+                const isPad = /iPad/i.test(ua);
+                const iosMatch = ua.match(/OS\s+([0-9_]+)/i);
+                const iosVer = iosMatch ? iosMatch[1].replace(/_/g, '.') : '';
+                const deviceName = isPad ? 'iPad' : 'iPhone';
+                const osPrefix = isPad ? 'iPadOS' : 'iOS';
+                return iosVer ? `${deviceName}(${osPrefix}${iosVer})` : `${deviceName}(${osPrefix})`;
+            }
+
+            // 3. Windows PC: 예) Windows11(24H2) / Windows10(22H2)
+            if (/Windows/i.test(ua) || platform.toLowerCase() === 'windows') {
+                if (platformVersion) {
+                    return mapWindowsBuildToRelease(platformVersion).replace(/\s+/g, '');
+                }
+                if (/Windows NT 10\.0/i.test(ua)) {
+                    return 'Windows10/11';
+                }
+                return 'Windows';
+            }
+
+            // 4. macOS: 예) Mac(macOS15.2)
+            if (/Macintosh|Mac OS X/i.test(ua) || platform.toLowerCase() === 'macos') {
+                const macVer = platformVersion || ((ua.match(/Mac OS X\s+([0-9_]+)/i) || [])[1] || '').replace(/_/g, '.');
+                return macVer ? `Mac(macOS${macVer})` : 'Mac(macOS)';
+            }
+
+            return platform || 'UnknownDevice';
+        }
+
+        async function fetchClientPublicIp() {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000);
+                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+                clearTimeout(timeout);
+                const data = await res.json();
+                return data.ip || 'unknown';
+            } catch (e) {
+                return 'unknown';
+            }
+        }
+
+        async function recordClientDeviceAndIp(nickname) {
+            if (!nickname) return;
+            const deviceInfo = await getReadableDeviceInfo();
+            const ip = await fetchClientPublicIp();
+            try {
+                await update(ref(db, `players/${nickname}`), {
+                    deviceInfo,
+                    deviceId: deviceInfo,
+                    lastIp: ip,
+                    lastSeenAt: Date.now()
+                });
+            } catch (e) {
+                console.warn('Device/IP logging skipped:', e);
+            }
+        }
+
+        function generateRandomAlphaNumCode(len = 6) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let out = '';
+            for (let i = 0; i < len; i++) {
+                out += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return out;
+        }
+
+        function generateRandomStage2Phrase() {
+            const phrases = [
+                '나는 직접 손으로 누릅니다',
+                '오토클리커 사용 안합니다',
+                '정정당당하게 땅을 먹자',
+                '매크로 없이 광클 도전중'
+            ];
+            return phrases[Math.floor(Math.random() * phrases.length)];
+        }
+
+        function generateHardHangul4() {
+            const chosung = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18];
+            const jungsung = [1, 3, 5, 7, 9, 10, 11, 14, 15, 16, 19];
+            const jongsung = [3, 5, 6, 9, 10, 11, 12, 13, 14, 15, 18, 20, 23, 24, 25, 26];
+            let result = '';
+            for (let i = 0; i < 4; i++) {
+                const cho = chosung[Math.floor(Math.random() * chosung.length)];
+                const jung = jungsung[Math.floor(Math.random() * jungsung.length)];
+                const jong = jongsung[Math.floor(Math.random() * jongsung.length)];
+                const code = 0xAC00 + (cho * 21 + jung) * 28 + jong;
+                result += String.fromCharCode(code);
+            }
+            return result;
+        }
+
+        function drawNoisyCaptchaCanvas(canvasId, text, textColor = '#fde047', fontSize = 22) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < w; x += 18) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+            for (let y = 0; y < h; y += 14) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            const noiseColors = ['#f43f5e', '#38bdf8', '#fbbf24', '#a855f7', '#10b981'];
+            for (let i = 0; i < 6; i++) {
+                ctx.strokeStyle = noiseColors[i % noiseColors.length] + '66';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * w, Math.random() * h);
+                ctx.bezierCurveTo(
+                    Math.random() * w, Math.random() * h,
+                    Math.random() * w, Math.random() * h,
+                    Math.random() * w, Math.random() * h
+                );
+                ctx.stroke();
+            }
+
+            for (let i = 0; i < 38; i++) {
+                ctx.fillStyle = noiseColors[i % noiseColors.length] + '88';
+                ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+            }
+
+            ctx.font = `900 ${fontSize}px 'Inter', sans-serif`;
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+
+            const chars = text.split('');
+            const step = (w - 36) / Math.max(chars.length, 1);
+            chars.forEach((ch, idx) => {
+                const cx = 18 + step * idx + step / 2;
+                const cy = h / 2 + (Math.random() * 6 - 3);
+                const angle = (Math.random() * 0.34) - 0.17;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+                ctx.fillStyle = textColor;
+                ctx.shadowColor = 'rgba(0,0,0,0.85)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(ch, 0, 0);
+                ctx.restore();
+            });
+        }
+
+        function openMacroCaptchaModal(incrementWarning = true) {
+            if (incrementWarning) {
                 macroWarningCount++;
             }
             isMacroLocked = true;
-            identicalIntervalStreak = 0;
-            baseIntervalMs = null;
-            playTone(160, 'sawtooth', 0.25, 0.22);
-
             const modal = document.getElementById('macro-captcha-modal');
             const badge = document.getElementById('macro-warning-count-badge');
+            const stage2Box = document.getElementById('macro-stage-2-box');
+            const stage3Box = document.getElementById('macro-stage-3-box');
             const input1 = document.getElementById('input-macro-captcha-1');
             const input2 = document.getElementById('input-macro-captcha-2');
             const input3 = document.getElementById('input-macro-captcha-3');
-            const stage2Box = document.getElementById('macro-stage-2-box');
-            const stage3Box = document.getElementById('macro-stage-3-box');
-            const hardTargetEl = document.getElementById('macro-hard-hangul-target');
             const errEl = document.getElementById('macro-captcha-error');
 
-            if (errEl) errEl.classList.add('hidden');
-            if (input1) input1.value = '';
-            if (input2) input2.value = '';
-            if (input3) input3.value = '';
+            input1.value = '';
+            input2.value = '';
+            input3.value = '';
+            errEl.classList.add('hidden');
 
-            // 경고 누적 횟수별 단계 UI 전환
+            currentCaptchaCode1 = generateRandomAlphaNumCode(6);
+            drawNoisyCaptchaCanvas('macro-canvas-1', currentCaptchaCode1, '#fde047', 22);
+
+            let stageLabel = '1단계 인증';
             if (macroWarningCount > 5) {
-                if (badge) badge.textContent = `🚨 누적 경고 ${macroWarningCount}회 (3단계 최고난도 인증)`;
+                stageLabel = '3단계 최고난도 인증';
                 stage2Box.classList.remove('hidden');
                 stage3Box.classList.remove('hidden');
-                if (isNewTrigger) {
-                    currentHardHangul = generateHardHangul4();
-                }
-                if (hardTargetEl) hardTargetEl.textContent = currentHardHangul;
+                currentCaptchaPhrase2 = generateRandomStage2Phrase();
+                drawNoisyCaptchaCanvas('macro-canvas-2', currentCaptchaPhrase2, '#7dd3fc', 17);
+                currentHardHangul = generateHardHangul4();
+                drawNoisyCaptchaCanvas('macro-hard-hangul-target', currentHardHangul, '#f0abfc', 24);
             } else if (macroWarningCount >= 3) {
-                if (badge) badge.textContent = `⚠️ 누적 경고 ${macroWarningCount}회 (2단계 한글 인증)`;
+                stageLabel = '2단계 강화 인증';
                 stage2Box.classList.remove('hidden');
                 stage3Box.classList.add('hidden');
+                currentCaptchaPhrase2 = generateRandomStage2Phrase();
+                drawNoisyCaptchaCanvas('macro-canvas-2', currentCaptchaPhrase2, '#7dd3fc', 17);
             } else {
-                if (badge) badge.textContent = `누적 경고 ${macroWarningCount}회 (1단계 영문 인증)`;
                 stage2Box.classList.add('hidden');
                 stage3Box.classList.add('hidden');
             }
 
-            if (modal) {
-                modal.classList.remove('hidden');
-                setTimeout(() => input1 && input1.focus(), 50);
-            }
+            badge.textContent = `누적 경고 ${macroWarningCount}회 (${stageLabel})`;
+            modal.classList.remove('hidden');
+            setTimeout(() => input1.focus(), 50);
+            playTone(220, 'sawtooth', 0.25, 0.2);
         }
 
         function verifyHumanClick(e) {
-            const now = Date.now();
-
             if (isMacroLocked) {
                 openMacroCaptchaModal(false);
                 return false;
             }
+            if (!e || e.isTrusted === false) {
+                openMacroCaptchaModal(true);
+                return false;
+            }
 
-            if (!e.isTrusted || e.detail === 0) {
+            const now = performance.now();
+            recentClickTimestamps.push(now);
+            recentClickTimestamps = recentClickTimestamps.filter((t) => now - t <= 1000);
+            if (recentClickTimestamps.length > MAX_HUMAN_CPS) {
                 openMacroCaptchaModal(true);
                 return false;
             }
@@ -631,21 +901,41 @@
             if (lastValidClickTime > 0) {
                 const interval = now - lastValidClickTime;
 
-                if (interval > 2500) {
-                    identicalIntervalStreak = 0;
+                if (interval > 3000) {
                     baseIntervalMs = null;
+                    identicalIntervalStreak = 0;
+                    fastJitterStreak = 0;
+                    teleportClickStreak = 0;
                 } else {
-                    if (
-                        baseIntervalMs !== null &&
-                        Math.abs(interval - baseIntervalMs) <= IDENTICAL_INTERVAL_TOLERANCE_MS
-                    ) {
+                    if (baseIntervalMs === null) {
+                        baseIntervalMs = interval;
+                        identicalIntervalStreak = 1;
+                    } else if (Math.abs(interval - baseIntervalMs) <= IDENTICAL_INTERVAL_TOLERANCE_MS) {
                         identicalIntervalStreak++;
                     } else {
-                        identicalIntervalStreak = 1;
                         baseIntervalMs = interval;
+                        identicalIntervalStreak = 1;
                     }
 
-                    if (identicalIntervalStreak >= IDENTICAL_INTERVAL_LIMIT) {
+                    if (interval <= 160) {
+                        fastJitterStreak++;
+                    } else if (interval >= 280) {
+                        fastJitterStreak = 0;
+                    }
+
+                    if (pointerMoveCountSinceLastClick === 0) {
+                        teleportClickStreak++;
+                    } else {
+                        teleportClickStreak = 0;
+                    }
+                    pointerMoveCountSinceLastClick = 0;
+
+                    if (
+                        identicalIntervalStreak >= IDENTICAL_INTERVAL_LIMIT ||
+                        fastJitterStreak >= JITTER_STREAK_LIMIT ||
+                        teleportClickStreak >= 14
+                    ) {
+                        teleportClickStreak = 0;
                         openMacroCaptchaModal(true);
                         return false;
                     }
@@ -656,188 +946,14 @@
             return true;
         }
 
-        // --- 3. Pure JS SHA-256 Fallback (Works on both HTTP & HTTPS) ---
-        async function hashPassword(rawPassword) {
-            const text = `clickland_salt_v1_${rawPassword}`;
-            if (window.crypto && window.crypto.subtle) {
-                try {
-                    const encoder = new TextEncoder();
-                    const data = encoder.encode(text);
-                    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                } catch (e) {
-                    // Fallback below
-                }
-            }
-            return sha256Fallback(text);
-        }
-
-        function sha256Fallback(ascii) {
-            function rightRotate(value, amount) {
-                return (value >>> amount) | (value << (32 - amount));
-            }
-            const mathPow = Math.pow;
-            const maxWord = mathPow(2, 32);
-            let result = '';
-            const words = [];
-            const asciiBitLength = ascii.length * 8;
-            const hash = [];
-            const k = [];
-            let primeCounter = 0;
-            const isComposite = {};
-
-            for (let candidate = 2; primeCounter < 64; candidate++) {
-                if (!isComposite[candidate]) {
-                    for (let i = 0; i < 313; i += candidate) {
-                        isComposite[i] = candidate;
-                    }
-                    hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
-                    k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-                }
-            }
-
-            ascii += '\x80';
-            while ((ascii.length % 64) - 56) ascii += '\x00';
-            for (let i = 0; i < ascii.length; i++) {
-                const j = ascii.charCodeAt(i);
-                words[i >> 2] |= j << (((3 - i) % 4) * 8);
-            }
-            words[words.length] = (asciiBitLength / maxWord) | 0;
-            words[words.length] = asciiBitLength;
-
-            for (let j = 0; j < words.length;) {
-                const w = words.slice(j, (j += 16));
-                const oldHash = hash.slice(0);
-                for (let i = 0; i < 64; i++) {
-                    const w15 = w[i - 15], w2 = w[i - 2];
-                    const a = hash[0], e = hash[4];
-                    const temp1 = hash[7]
-                        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
-                        + ((e & hash[5]) ^ ((~e) & hash[6]))
-                        + k[i]
-                        + (w[i] = (i < 16) ? w[i] : (
-                            w[i - 16]
-                            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-                            + w[i - 7]
-                            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
-                        ) | 0);
-                    const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
-                        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-
-                    hash.unshift((temp1 + temp2) | 0);
-                    hash.pop();
-                    hash[4] = (hash[4] + temp1) | 0;
-                }
-                for (let i = 0; i < 8; i++) {
-                    hash[i] = (hash[i] + oldHash[i]) | 0;
-                }
-            }
-
-            for (let i = 0; i < 8; i++) {
-                for (let j = 3; j + 1; j--) {
-                    const b = (hash[i] >> (j * 8)) & 255;
-                    result += ((b < 16) ? 0 : '') + b.toString(16);
-                }
-            }
-            return result;
-        }
-
-        function sanitizeFirebaseKey(name) {
-            return name.trim().replace(/[.#$\[\]\/]/g, '_');
-        }
-
-        // 기기 고유 식별자(deviceId) 발급 및 유지
-        function getOrCreateDeviceId() {
-            let devId = localStorage.getItem('wc_device_id');
-            if (!devId) {
-                devId = 'dev_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
-                localStorage.setItem('wc_device_id', devId);
-            }
-            return devId;
-        }
-
-        // 접속자 공인 IP 조회 (타임아웃 3초 안전 처리)
-        async function fetchClientPublicIP() {
-            try {
-                const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), 3000);
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                clearTimeout(timer);
-                if (!res.ok) return 'unknown';
-                const data = await res.json();
-                return data.ip || 'unknown';
-            } catch (e) {
-                return 'unknown';
-            }
-        }
-
-        // 로그인/접속 시 해당 계정의 최신 IP와 기기 ID를 비동기로 동기화
-        async function syncPlayerDeviceTelemetry(nickname) {
-            if (!nickname) return;
-            try {
-                const safeKey = sanitizeFirebaseKey(nickname);
-                const deviceId = getOrCreateDeviceId();
-                const publicIp = await fetchClientPublicIP();
-                await update(ref(db, `players/${safeKey}`), {
-                    lastIp: publicIp,
-                    deviceId: deviceId,
-                    lastSeenAt: Date.now()
-                });
-            } catch (e) {
-                // 텔레메트리 실패가 게임 진행을 막지 않도록 무시
-            }
-        }
-
-        async function authenticatePlayer(mode, nickname, rawPassword, chosenColor) {
-            const safeKey = sanitizeFirebaseKey(nickname);
-            const passHash = await hashPassword(rawPassword);
-            const playerRef = ref(db, `players/${safeKey}`);
-            const deviceId = getOrCreateDeviceId();
-            const publicIp = await fetchClientPublicIP();
-
-            const snapshot = await get(playerRef);
-
-            if (mode === 'login') {
-                if (!snapshot.exists()) {
-                    return { ok: false, error: '등록되지 않은 닉네임입니다. 상단의 [✨ 회원가입] 탭에서 먼저 가입해 주세요!' };
-                }
-                const existing = snapshot.val();
-                if (existing.passHash !== passHash) {
-                    return { ok: false, error: '비밀번호가 일치하지 않습니다.' };
-                }
-                await update(playerRef, {
-                    lastIp: publicIp,
-                    deviceId: deviceId,
-                    lastSeenAt: Date.now()
-                });
-                const preservedColor = existing.color || chosenColor || pickRandomColor();
-                return { ok: true, passHash, color: preservedColor };
-            } else {
-                if (snapshot.exists()) {
-                    return { ok: false, error: '이미 사용 중인 닉네임입니다. 다른 닉네임을 입력하거나 [🔑 로그인] 해주세요.' };
-                }
-                await set(playerRef, {
-                    nickname: nickname,
-                    passHash: passHash,
-                    color: chosenColor,
-                    lastIp: publicIp,
-                    deviceId: deviceId,
-                    createdAt: Date.now(),
-                    lastSeenAt: Date.now()
-                });
-                return { ok: true, passHash, color: chosenColor };
-            }
-        }
-
-        // --- 4. Web Audio API Sound Effects & Push Notifications ---
+        // --- 3. Web Audio API Sound Effects ---
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
-        function playTone(freq, type = 'sine', duration = 0.08, volume = 0.14) {
+
+        function playTone(freq, type = 'sine', duration = 0.08, volume = 0.15) {
             if (!soundEnabled) return;
             try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
+                if (!audioCtx) audioCtx = new AudioCtx();
                 if (audioCtx.state === 'suspended') audioCtx.resume();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -853,106 +969,36 @@
         }
 
         function playClickSound(progressRatio) {
-            const baseFreq = 320 + Math.min(progressRatio, 1) * 420;
-            playTone(baseFreq, 'triangle', 0.06, 0.12);
+            const pitch = 320 + Math.min(progressRatio, 1) * 420;
+            playTone(pitch, 'triangle', 0.07, 0.14);
         }
 
         function playConquerFanfare() {
-            playTone(523.25, 'sine', 0.12, 0.18);
-            setTimeout(() => playTone(659.25, 'sine', 0.12, 0.18), 90);
-            setTimeout(() => playTone(783.99, 'sine', 0.14, 0.18), 180);
-            setTimeout(() => playTone(1046.5, 'triangle', 0.28, 0.22), 270);
+            if (!soundEnabled) return;
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((n, idx) => {
+                setTimeout(() => playTone(n, 'sine', 0.18, 0.18), idx * 75);
+            });
         }
 
-        async function triggerTerritoryStolenAlert(attackerName, lat, lng) {
-            if (!stealAlertEnabled) return;
-
-            const landmark = getLandmarkInfo(lat, lng);
-            const placeName = landmark ? landmark.name : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-            const alertMsg = `🚨 ${attackerName}님이 땅을 빼앗았습니다! (${placeName})`;
-
-            showLiveTicker(alertMsg);
-            playTone(440, 'sawtooth', 0.14, 0.22);
-            setTimeout(() => playTone(330, 'sawtooth', 0.22, 0.22), 130);
-            if (navigator.vibrate) {
-                try { navigator.vibrate([200, 100, 200]); } catch (e) {}
-            }
-
-            if ('Notification' in window) {
-                if (Notification.permission === 'default') {
-                    try { await Notification.requestPermission(); } catch (e) {}
-                }
-                if (Notification.permission === 'granted') {
-                    const notifTitle = '🚨 클릭땅 영토 침공 경보!';
-                    const notifOptions = {
-                        body: `${attackerName}님이 땅을 빼앗았습니다! (${placeName})`,
-                        tag: 'clickland-steal-' + Date.now(),
-                        renotify: true,
-                        vibrate: [200, 100, 200]
-                    };
-
-                    try {
-                        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                            const reg = await navigator.serviceWorker.ready;
-                            await reg.showNotification(notifTitle, notifOptions);
-                        } else {
-                            const notif = new Notification(notifTitle, notifOptions);
-                            notif.onclick = () => {
-                                window.focus();
-                                if (map) map.setView([lat, lng], 19);
-                                notif.close();
-                            };
-                        }
-                    } catch (e) {
-                        try {
-                            new Notification(notifTitle, notifOptions);
-                        } catch (_) {}
-                    }
-                }
-            }
-        }
-
-        function updateStealAlertUI() {
-            const btn = document.getElementById('btn-toggle-steal-alert');
-            if (!btn) return;
-            if (stealAlertEnabled) {
-                btn.textContent = 'ON';
-                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-emerald-500 text-slate-950 transition cursor-pointer shrink-0';
-            } else {
-                btn.textContent = 'OFF';
-                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-slate-600 text-slate-200 transition cursor-pointer shrink-0';
-            }
-        }
-
-        function copyInviteText() {
-            const ta = document.createElement('textarea');
-            ta.value = INVITE_MESSAGE_TEXT;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            showToast('📋 친구 초대 홍보 문구가 클립보드에 복사되었습니다!');
-        }
-
-        // --- 5. 5m × 5m Grid Math & Landmark / Siege Pricing ---
-        const LAT_STEP = 0.000045; // ~5.00 meters in latitude (5m × 5m grid)
+        // --- 4. 5m × 5m Grid Math & Landmark Calculation ---
+        const LAT_STEP = 5 / 111320;
 
         function getLngStep(lat) {
             const cosLat = Math.max(0.15, Math.cos((lat * Math.PI) / 180));
-            return LAT_STEP / cosLat;
+            return 5 / (111320 * cosLat);
         }
 
-        function latLngToGridCell(lat, lng) {
+        function getCellFromLatLng(lat, lng) {
             const row = Math.floor(lat / LAT_STEP);
-            const cellCenterLat = (row + 0.5) * LAT_STEP;
-            const lngStep = getLngStep(cellCenterLat);
-            const col = Math.floor(lng / lngStep);
-
             const south = row * LAT_STEP;
             const north = (row + 1) * LAT_STEP;
+            const centerLat = (south + north) / 2;
+
+            const lngStep = getLngStep(centerLat);
+            const col = Math.floor(lng / lngStep);
             const west = col * lngStep;
             const east = (col + 1) * lngStep;
-            const centerLat = (south + north) / 2;
             const centerLng = (west + east) / 2;
 
             return {
@@ -966,6 +1012,24 @@
                 centerLat,
                 centerLng
             };
+        }
+
+        function getCellFromId(cellId) {
+            const parts = cellId.split('_');
+            if (parts.length !== 2) return null;
+            const row = parseInt(parts[0], 10);
+            const col = parseInt(parts[1], 10);
+            if (Number.isNaN(row) || Number.isNaN(col)) return null;
+
+            const south = row * LAT_STEP;
+            const north = (row + 1) * LAT_STEP;
+            const centerLat = (south + north) / 2;
+            const lngStep = getLngStep(centerLat);
+            const west = col * lngStep;
+            const east = (col + 1) * lngStep;
+            const centerLng = (west + east) / 2;
+
+            return { id: cellId, row, col, south, north, west, east, centerLat, centerLng };
         }
 
         function haversineMeters(lat1, lng1, lat2, lng2) {
@@ -991,44 +1055,21 @@
         }
 
         function getRequiredClicksForCell(cell) {
-            const landmark = getLandmarkInfo(cell.centerLat, cell.centerLng);
-            const baseClicks = landmark ? landmark.baseClicks : 50;
+            const lm = getLandmarkInfo(cell.centerLat, cell.centerLng);
+            const baseClicks = lm ? lm.baseClicks : 50;
             const existing = territories[cell.id];
-            const conquerCount = existing ? (existing.conquerCount || 1) : 0;
-            const required = baseClicks + conquerCount * SIEGE_INCREMENT_CLICKS;
-            return { required, baseClicks, conquerCount, landmark };
+            const conquerCount = existing && typeof existing.conquerCount === 'number' ? existing.conquerCount : 0;
+            const siegeBonus = conquerCount * SIEGE_INCREMENT_CLICKS;
+            return {
+                totalRequired: baseClicks + siegeBonus,
+                baseClicks,
+                conquerCount,
+                siegeBonus,
+                landmark: lm
+            };
         }
 
-        function escapeHTML(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-
-        // --- 6. Map Initialization & Tile Layers (Google Maps + Esri Satellite) ---
-        function createBaseTileLayer(satellite) {
-            if (satellite) {
-                return L.tileLayer(
-                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                    {
-                        maxNativeZoom: 18,
-                        maxZoom: 22,
-                        attribution: 'Tiles &copy; Esri'
-                    }
-                );
-            }
-            return L.tileLayer(
-                'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-                {
-                    maxNativeZoom: 20,
-                    maxZoom: 22,
-                    attribution: '&copy; Google Maps'
-                }
-            );
-        }
-
+        // --- 5. Map & Layer Rendering ---
         function initMap() {
             map = L.map('map', {
                 center: [DEFAULT_LAT, DEFAULT_LNG],
@@ -1040,536 +1081,355 @@
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            activeTileLayer = createBaseTileLayer(false).addTo(map);
+            const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                maxNativeZoom: 19,
+                maxZoom: 22
+            });
+
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri World Imagery',
+                maxNativeZoom: 19,
+                maxZoom: 22
+            });
+
+            activeTileLayer = streetLayer.addTo(map);
+
+            document.getElementById('btn-toggle-map-style').addEventListener('click', () => {
+                map.removeLayer(activeTileLayer);
+                isSatelliteMode = !isSatelliteMode;
+                activeTileLayer = (isSatelliteMode ? satelliteLayer : streetLayer).addTo(map);
+                document.getElementById('map-style-label').textContent = isSatelliteMode ? '일반' : '위성';
+                showToast(isSatelliteMode ? '위성 지도로 전환했습니다.' : '일반 도로 지도로 전환했습니다.');
+            });
 
             ownedLayerGroup = L.layerGroup().addTo(map);
             gridLayerGroup = L.layerGroup().addTo(map);
 
-            map.on('moveend zoomend', () => {
-                updateZoomHUD();
-                scheduleMapRender();
+            map.on('click', (e) => {
+                const zoom = map.getZoom();
+                if (zoom < GRID_MIN_ZOOM) {
+                    map.setView(e.latlng, 19, { animate: true });
+                    showToast('5m × 5m 격자를 표시하기 위해 자동 확대했습니다!');
+                    return;
+                }
+                const cell = getCellFromLatLng(e.latlng.lat, e.latlng.lng);
+                handleCellInteraction(cell);
             });
 
-            updateZoomHUD();
+            map.on('moveend zoomend', scheduleMapRender);
             scheduleMapRender();
-        }
-
-        function updateZoomHUD() {
-            if (!map) return;
-            const zoom = map.getZoom();
-            const badge = document.getElementById('hud-zoom-badge');
-            if (badge) badge.textContent = `줌 ${zoom}`;
-
-            const promptBanner = document.getElementById('zoom-prompt-banner');
-            if (promptBanner) {
-                if (zoom < GRID_MIN_ZOOM) {
-                    promptBanner.classList.remove('hidden');
-                } else {
-                    promptBanner.classList.add('hidden');
-                }
-            }
         }
 
         function scheduleMapRender() {
             if (renderDebounceTimer) clearTimeout(renderDebounceTimer);
-            renderDebounceTimer = setTimeout(() => {
-                renderViewportGridAndTerritories();
-            }, 60);
+            renderDebounceTimer = setTimeout(renderMapLayers, 60);
         }
 
-        // --- 7. Connected Component Clustering for Clean Labels ---
-        function buildTerritoryClusters(visibleOwnedEntries) {
-            const cellMap = new Map();
-            visibleOwnedEntries.forEach(([id, data]) => {
-                const parts = id.split('_');
-                if (parts.length === 2) {
-                    cellMap.set(id, {
-                        id,
-                        row: parseInt(parts[0], 10),
-                        col: parseInt(parts[1], 10),
-                        data
-                    });
-                }
-            });
-
-            const visited = new Set();
-            const clusters = [];
-
-            for (const [id, node] of cellMap.entries()) {
-                if (visited.has(id)) continue;
-                const queue = [node];
-                visited.add(id);
-                const members = [];
-
-                while (queue.length > 0) {
-                    const curr = queue.shift();
-                    members.push(curr);
-
-                    const neighbors = [
-                        `${curr.row + 1}_${curr.col}`,
-                        `${curr.row - 1}_${curr.col}`,
-                        `${curr.row}_${curr.col + 1}`,
-                        `${curr.row}_${curr.col - 1}`
-                    ];
-
-                    for (const nId of neighbors) {
-                        if (!visited.has(nId) && cellMap.has(nId)) {
-                            const neighborNode = cellMap.get(nId);
-                            if (neighborNode.data.owner === node.data.owner) {
-                                visited.add(nId);
-                                queue.push(neighborNode);
-                            }
-                        }
-                    }
-                }
-
-                let sumLat = 0;
-                let sumLng = 0;
-                members.forEach(m => {
-                    sumLat += m.data.lat;
-                    sumLng += m.data.lng;
-                });
-                const avgLat = sumLat / members.length;
-                const avgLng = sumLng / members.length;
-
-                let anchor = members[0];
-                let minDist = Infinity;
-                members.forEach(m => {
-                    const d = Math.hypot(m.data.lat - avgLat, m.data.lng - avgLng);
-                    if (d < minDist) {
-                        minDist = d;
-                        anchor = m;
-                    }
-                });
-
-                clusters.push({
-                    owner: node.data.owner,
-                    count: members.length,
-                    anchorId: anchor.id
-                });
-            }
-
-            const anchorLookup = new Map();
-            clusters.forEach(c => {
-                anchorLookup.set(c.anchorId, c);
-            });
-            return anchorLookup;
-        }
-
-        // --- 8. Render Grid & Territories ---
-        function renderViewportGridAndTerritories() {
+        function renderMapLayers() {
             if (!map) return;
-            gridLayerGroup.clearLayers();
-            ownedLayerGroup.clearLayers();
-
             const zoom = map.getZoom();
             const bounds = map.getBounds();
-            const padBounds = bounds.pad(0.15);
 
-            // 1) 점령된 영토 렌더링
-            const visibleOwned = [];
-            Object.entries(territories).forEach(([id, data]) => {
-                if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') return;
-                if (padBounds.contains([data.lat, data.lng])) {
-                    visibleOwned.push([id, data]);
+            document.getElementById('hud-zoom-badge').textContent = `줌 ${zoom}`;
+
+            const zoomBanner = document.getElementById('zoom-prompt-banner');
+            if (zoom < GRID_MIN_ZOOM) {
+                zoomBanner.classList.remove('hidden');
+            } else {
+                zoomBanner.classList.add('hidden');
+            }
+
+            ownedLayerGroup.clearLayers();
+            gridLayerGroup.clearLayers();
+
+            const southBound = bounds.getSouth();
+            const northBound = bounds.getNorth();
+            const westBound = bounds.getWest();
+            const eastBound = bounds.getEast();
+
+            Object.entries(territories).forEach(([cellId, data]) => {
+                if (!data || !data.owner) return;
+                const cell = getCellFromId(cellId);
+                if (!cell) return;
+
+                if (
+                    cell.north < southBound ||
+                    cell.south > northBound ||
+                    cell.east < westBound ||
+                    cell.west > eastBound
+                ) {
+                    return;
                 }
-            });
 
-            // 줌 22 이상에서만 '~~의 땅!' 라벨 표시, 줌 22 미만에서는 라벨 없이 색상만 표시
-            const showLabels = zoom >= LABEL_MIN_ZOOM;
-            const anchorLookup = showLabels ? buildTerritoryClusters(visibleOwned) : new Map();
-
-            visibleOwned.forEach(([id, data]) => {
-                if (zoom >= GRID_MIN_ZOOM) {
-                    const cell = latLngToGridCell(data.lat, data.lng);
-                    const isSelected = selectedCell && selectedCell.id === id;
-                    const rect = L.rectangle(
-                        [
-                            [cell.south, cell.west],
-                            [cell.north, cell.east]
-                        ],
-                        {
-                            color: isSelected ? '#fde047' : '#ffffff',
-                            weight: isSelected ? 3 : 1.5,
-                            fillColor: data.color || '#ef4444',
-                            fillOpacity: 0.72
-                        }
-                    ).addTo(ownedLayerGroup);
-
-                    const cluster = anchorLookup.get(id);
-                    if (showLabels && cluster) {
-                        const labelText = cluster.count > 1
-                            ? `${escapeHTML(cluster.owner)}의 땅! (${cluster.count}칸)`
-                            : `${escapeHTML(cluster.owner)}의 땅!`;
-                        rect.bindTooltip(labelText, {
-                            permanent: true,
-                            direction: 'top',
-                            offset: [0, -4],
-                            className: 'territory-label'
-                        });
+                const isSelected = selectedCell && selectedCell.id === cell.id;
+                const rect = L.rectangle(
+                    [[cell.south, cell.west], [cell.north, cell.east]],
+                    {
+                        color: isSelected ? '#ffffff' : data.color,
+                        weight: isSelected ? 3 : zoom >= 17 ? 1.5 : 0.8,
+                        fillColor: data.color,
+                        fillOpacity: zoom >= 17 ? 0.56 : 0.72,
+                        interactive: true
                     }
+                );
 
-                    rect.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        handleCellInteraction(cell);
-                    });
-                } else {
-                    const marker = L.circleMarker([data.lat, data.lng], {
-                        radius: 7,
-                        color: '#ffffff',
-                        weight: 1.5,
-                        fillColor: data.color || '#ef4444',
-                        fillOpacity: 0.92
-                    }).addTo(ownedLayerGroup);
+                rect.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    if (map.getZoom() < GRID_MIN_ZOOM) {
+                        map.setView([cell.centerLat, cell.centerLng], 19, { animate: true });
+                        return;
+                    }
+                    handleCellInteraction(cell);
+                });
 
-                    marker.on('click', () => {
-                        map.setView([data.lat, data.lng], 22);
+                if (zoom >= LABEL_MIN_ZOOM) {
+                    rect.bindTooltip(`${data.owner}의 땅!`, {
+                        permanent: true,
+                        direction: 'top',
+                        className: 'territory-label',
+                        offset: [0, -2]
                     });
                 }
+
+                ownedLayerGroup.addLayer(rect);
             });
 
-            // 2) 줌 17 이상일 때만 5m × 5m 빈 격자 렌더링
             if (zoom < GRID_MIN_ZOOM) return;
 
-            const south = bounds.getSouth();
-            const north = bounds.getNorth();
-            const west = bounds.getWest();
-            const east = bounds.getEast();
-
-            const minRow = Math.floor(south / LAT_STEP);
-            const maxRow = Math.floor(north / LAT_STEP);
-            const midLat = (south + north) / 2;
+            const startRow = Math.floor(southBound / LAT_STEP);
+            const endRow = Math.floor(northBound / LAT_STEP);
+            const midLat = (southBound + northBound) / 2;
             const lngStep = getLngStep(midLat);
-            const minCol = Math.floor(west / lngStep);
-            const maxCol = Math.floor(east / lngStep);
+            const startCol = Math.floor(westBound / lngStep);
+            const endCol = Math.floor(eastBound / lngStep);
 
-            const totalCells = (maxRow - minRow + 1) * (maxCol - minCol + 1);
-            if (totalCells > MAX_RENDERED_CELLS) return;
+            const totalCells = (endRow - startRow + 1) * (endCol - startCol + 1);
+            if (totalCells > MAX_RENDERED_CELLS) {
+                return;
+            }
 
-            for (let r = minRow; r <= maxRow; r++) {
-                const cellSouth = r * LAT_STEP;
-                const cellNorth = (r + 1) * LAT_STEP;
-                const cLat = (cellSouth + cellNorth) / 2;
-                const rowLngStep = getLngStep(cLat);
-                const rMinCol = Math.floor(west / rowLngStep);
-                const rMaxCol = Math.floor(east / rowLngStep);
+            for (let r = startRow; r <= endRow; r++) {
+                const s = r * LAT_STEP;
+                const n = (r + 1) * LAT_STEP;
+                const cLat = (s + n) / 2;
+                const stepL = getLngStep(cLat);
+                const cStart = Math.floor(westBound / stepL);
+                const cEnd = Math.floor(eastBound / stepL);
 
-                for (let c = rMinCol; c <= rMaxCol; c++) {
+                for (let c = cStart; c <= cEnd; c++) {
                     const cellId = `${r}_${c}`;
-                    if (territories[cellId]) continue;
+                    const w = c * stepL;
+                    const e = (c + 1) * stepL;
+                    const isSelected = selectedCell && selectedCell.id === cellId;
 
-                    const cellWest = c * rowLngStep;
-                    const cellEast = (c + 1) * rowLngStep;
+                    if (territories[cellId] && !isSelected) continue;
+
                     const cellObj = {
                         id: cellId,
                         row: r,
                         col: c,
-                        south: cellSouth,
-                        north: cellNorth,
-                        west: cellWest,
-                        east: cellEast,
+                        south: s,
+                        north: n,
+                        west: w,
+                        east: e,
                         centerLat: cLat,
-                        centerLng: (cellWest + cellEast) / 2
+                        centerLng: (w + e) / 2
                     };
 
-                    const isSelected = selectedCell && selectedCell.id === cellId;
-                    const isLandmark = Boolean(getLandmarkInfo(cellObj.centerLat, cellObj.centerLng));
-
-                    const rect = L.rectangle(
-                        [
-                            [cellSouth, cellWest],
-                            [cellNorth, cellEast]
-                        ],
+                    const gridRect = L.rectangle(
+                        [[s, w], [n, e]],
                         {
-                            color: isSelected ? '#f59e0b' : (isLandmark ? 'rgba(168, 85, 247, 0.45)' : 'rgba(15, 23, 42, 0.25)'),
-                            weight: isSelected ? 2.5 : 1,
-                            fillColor: isSelected ? '#fbbf24' : (isLandmark ? '#a855f7' : '#ffffff'),
-                            fillOpacity: isSelected ? 0.35 : (isLandmark ? 0.12 : 0.04)
+                            color: isSelected ? '#fbbf24' : '#334155',
+                            weight: isSelected ? 3 : 0.7,
+                            opacity: isSelected ? 1 : 0.32,
+                            fillColor: isSelected ? '#fbbf24' : '#ffffff',
+                            fillOpacity: isSelected ? 0.25 : 0.01,
+                            interactive: true
                         }
-                    ).addTo(gridLayerGroup);
+                    );
 
-                    rect.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
+                    gridRect.on('click', (ev) => {
+                        L.DomEvent.stopPropagation(ev);
                         handleCellInteraction(cellObj);
                     });
+
+                    gridLayerGroup.addLayer(gridRect);
                 }
             }
         }
 
-        // --- 9. Conquest & Click Interaction Logic ---
-        function handleCellInteraction(cell) {
-            if (!playerProfile.nickname) {
-                document.getElementById('nickname-modal').classList.remove('hidden');
-                return;
-            }
-            selectedCell = cell;
-            openConquestPanel(cell);
-            scheduleMapRender();
+        // --- 6. Account Auth (Nickname + Password Hash + Random HEX Color) ---
+        async function hashPassword(rawPassword) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode('clickland_salt_v1_' + rawPassword);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
         }
 
-        function openConquestPanel(cell) {
-            const panel = document.getElementById('conquest-panel');
-            panel.classList.remove('hidden');
+        function setAuthMode(mode) {
+            authMode = mode;
+            const tabLogin = document.getElementById('tab-mode-login');
+            const tabSignup = document.getElementById('tab-mode-signup');
+            const signupColorSec = document.getElementById('signup-color-section');
+            const subtitle = document.getElementById('auth-subtitle');
+            const submitBtn = document.getElementById('btn-auth-submit');
+            const errBox = document.getElementById('auth-error-box');
 
-            const existing = territories[cell.id];
-            const { required, conquerCount, landmark } = getRequiredClicksForCell(cell);
-            const currentClicks = localClickProgress[cell.id] || 0;
+            errBox.classList.add('hidden');
 
-            const badgeEl = document.getElementById('panel-badge');
-            const landmarkBadgeEl = document.getElementById('panel-landmark-badge');
-            const titleEl = document.getElementById('panel-title');
-            const coordsEl = document.getElementById('panel-coords');
-            const siegeInfoEl = document.getElementById('panel-siege-info');
-            const btnAttack = document.getElementById('btn-click-conquer');
-
-            if (landmark) {
-                landmarkBadgeEl.textContent = `🏛️ ${landmark.name}`;
-                landmarkBadgeEl.classList.remove('hidden');
+            if (mode === 'login') {
+                tabLogin.className = 'py-2 rounded-xl font-extrabold text-xs bg-white text-amber-600 shadow-sm transition cursor-pointer';
+                tabSignup.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer';
+                signupColorSec.classList.add('hidden');
+                subtitle.textContent = '기존 닉네임과 비밀번호로 로그인하세요!';
+                submitBtn.textContent = '로그인하고 입장하기';
             } else {
-                landmarkBadgeEl.classList.add('hidden');
+                tabSignup.className = 'py-2 rounded-xl font-extrabold text-xs bg-white text-amber-600 shadow-sm transition cursor-pointer';
+                tabLogin.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer';
+                signupColorSec.classList.remove('hidden');
+                subtitle.textContent = '새 계정을 만들고 무작위 영토 색상을 배정받으세요!';
+                submitBtn.textContent = '회원가입하고 시작하기';
+                updateRandomColorPreview(pickRandomColor());
             }
+        }
 
-            coordsEl.textContent = `위도 ${cell.centerLat.toFixed(6)}, 경도 ${cell.centerLng.toFixed(6)}`;
-            siegeInfoEl.textContent = `누적 공성 할증: ${conquerCount}회 (+${conquerCount * SIEGE_INCREMENT_CLICKS}클릭)`;
+        function updateRandomColorPreview(hexColor) {
+            selectedColor = hexColor;
+            document.getElementById('random-color-preview').style.backgroundColor = hexColor;
+            document.getElementById('random-color-hex').textContent = hexColor.toUpperCase();
+        }
 
-            if (!existing) {
-                badgeEl.textContent = '🏳️ 주인 없는 빈 땅';
-                badgeEl.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40';
-                titleEl.textContent = '신규 영토 개척하기';
-                btnAttack.textContent = '👆 광클해서 점령하기!';
-                btnAttack.disabled = false;
-                btnAttack.classList.remove('opacity-50', 'cursor-not-allowed');
-            } else if (existing.owner === playerProfile.nickname) {
-                badgeEl.textContent = '👑 내 영토';
-                badgeEl.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40';
-                titleEl.textContent = `${existing.owner}의 영토 (방어 완료)`;
-                btnAttack.textContent = '✅ 이미 내가 점령한 땅입니다';
-                btnAttack.disabled = true;
-                btnAttack.classList.add('opacity-50', 'cursor-not-allowed');
+        function showAuthError(msg) {
+            const errBox = document.getElementById('auth-error-box');
+            errBox.textContent = msg;
+            errBox.classList.remove('hidden');
+        }
+
+        function setupAuthModal() {
+            const modal = document.getElementById('nickname-modal');
+            const form = document.getElementById('nickname-form');
+            const inputNick = document.getElementById('input-nickname');
+            const inputPass = document.getElementById('input-password');
+
+            document.getElementById('tab-mode-login').addEventListener('click', () => setAuthMode('login'));
+            document.getElementById('tab-mode-signup').addEventListener('click', () => setAuthMode('signup'));
+            document.getElementById('btn-reroll-color').addEventListener('click', () => {
+                updateRandomColorPreview(pickRandomColor());
+            });
+
+            if (playerProfile.nickname && playerProfile.passHash) {
+                inputNick.value = playerProfile.nickname;
+                modal.classList.add('hidden');
+                updateHudProfile();
+                recordClientDeviceAndIp(playerProfile.nickname);
             } else {
-                badgeEl.textContent = `⚔️ ${existing.owner}의 영토`;
-                badgeEl.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/40';
-                titleEl.textContent = `${existing.owner}의 땅 빼앗기!`;
-                btnAttack.textContent = '⚔️ 광클해서 땅 빼앗기!';
-                btnAttack.disabled = false;
-                btnAttack.classList.remove('opacity-50', 'cursor-not-allowed');
+                setAuthMode('login');
+                modal.classList.remove('hidden');
             }
 
-            updateConquestProgressUI(currentClicks, required);
-        }
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nick = inputNick.value.trim();
+                const pass = inputPass.value.trim();
 
-        function updateConquestProgressUI(currentClicks, required) {
-            const pct = Math.min(100, Math.round((currentClicks / required) * 100));
-            document.getElementById('panel-progress-text').textContent = `${currentClicks} / ${required} 클릭 (${pct}%)`;
-            document.getElementById('panel-progress-bar').style.width = `${pct}%`;
-        }
-
-        function spawnFloatingClickEffect(clientX, clientY, text) {
-            const el = document.createElement('div');
-            el.className = 'floating-click-text';
-            el.textContent = text;
-            const x = clientX || window.innerWidth / 2;
-            const y = clientY || window.innerHeight - 130;
-            el.style.left = `${x + (Math.random() * 40 - 20)}px`;
-            el.style.top = `${y - 10}px`;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 660);
-        }
-
-        async function executeConquerClaim(cell) {
-            const cellRef = ref(db, `territories/${cell.id}`);
-            try {
-                await runTransaction(cellRef, (currentData) => {
-                    const prevCount = currentData ? (currentData.conquerCount || 1) : 0;
-                    return {
-                        owner: playerProfile.nickname,
-                        color: playerProfile.color,
-                        lat: cell.centerLat,
-                        lng: cell.centerLng,
-                        conquerCount: prevCount + 1,
-                        updatedAt: Date.now()
-                    };
-                });
-                localClickProgress[cell.id] = 0;
-                playConquerFanfare();
-                showToast(`🎉 [${cell.id}] 구역을 점령했습니다!`);
-            } catch (err) {
-                console.error('Claim transaction failed:', err);
-                showToast('서버 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
-            }
-        }
-
-        // --- 10. Firebase Realtime Sync & Leaderboard ---
-        let initialForceReloadTimestamp = null;
-        let isChatCollapsed = false;
-
-        function isCurrentUserAdmin() {
-            return playerProfile.nickname === ADMIN_NICKNAME && Boolean(playerProfile.passHash);
-        }
-
-        function setupChatAndAdminSync() {
-            // 1) 실시간 채팅 동기화 (최근 40개 메시지)
-            const chatQuery = query(ref(db, 'chat_messages'), limitToLast(40));
-            const messagesEl = document.getElementById('chat-messages');
-
-            onValue(chatQuery, (snapshot) => {
-                const data = snapshot.val() || {};
-                const list = Object.values(data).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
-                if (list.length === 0) {
-                    messagesEl.innerHTML = `<div class="text-slate-400 text-[11px] text-center py-2">첫 채팅을 남겨보세요!</div>`;
+                if (!nick) {
+                    showAuthError('닉네임을 입력해 주세요.');
+                    return;
+                }
+                if (/[.#$\[\]\/]/.test(nick)) {
+                    showAuthError('닉네임에 특수문자(. # $ [ ] /)는 사용할 수 없습니다.');
+                    return;
+                }
+                if (pass.length < 4) {
+                    showAuthError('비밀번호는 최소 4자리 이상 입력해 주세요.');
                     return;
                 }
 
-                messagesEl.innerHTML = list.map((msg) => {
-                    if (msg.isSystem) {
-                        return `<div class="text-[11px] font-bold text-rose-300 bg-rose-500/15 border border-rose-400/30 px-2 py-1 rounded-lg text-center">${escapeHTML(msg.text)}</div>`;
-                    }
-                    const isAdmin = msg.sender === ADMIN_NICKNAME;
-                    const color = msg.color || '#fbbf24';
-                    return `
-                        <div class="leading-snug break-words">
-                            <span class="inline-block w-2 h-2 rounded-full mr-1 align-middle" style="background-color: ${color};"></span>
-                            ${isAdmin ? '<span class="text-[10px] font-black px-1 py-0.2 rounded bg-rose-500 text-white mr-1">👑관리자</span>' : ''}
-                            <strong class="${isAdmin ? 'text-rose-300' : 'text-amber-200'} font-extrabold">${escapeHTML(msg.sender)}:</strong>
-                            <span class="text-slate-100">${escapeHTML(msg.text)}</span>
-                        </div>
-                    `;
-                }).join('');
+                const submitBtn = document.getElementById('btn-auth-submit');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '확인 중...';
 
-                messagesEl.scrollTop = messagesEl.scrollHeight;
-            });
+                try {
+                    const passHash = await hashPassword(pass);
+                    const playerRef = ref(db, `players/${nick}`);
+                    const snap = await get(playerRef);
 
-            // 2) 관리자 강제 새로고침(/resetall) 실시간 수신기
-            const forceReloadRef = ref(db, 'system/forceReloadAt');
-            onValue(forceReloadRef, (snapshot) => {
-                const reloadTs = snapshot.val();
-                if (!reloadTs) return;
-
-                if (initialForceReloadTimestamp === null) {
-                    initialForceReloadTimestamp = reloadTs;
-                    return;
-                }
-
-                if (reloadTs > initialForceReloadTimestamp) {
-                    initialForceReloadTimestamp = reloadTs;
-                    const host = window.location.hostname;
-                    if (host === 'clickland.kro.kr' || host.endsWith('.clickland.kro.kr') || host.endsWith('.netlify.app') || host.includes('github.io')) {
-                        window.location.reload();
-                    }
-                }
-            });
-        }
-
-        function setupFirebaseSync() {
-            const territoriesRef = ref(db, 'territories');
-            const badge = document.getElementById('server-status-badge');
-
-            onValue(
-                territoriesRef,
-                (snapshot) => {
-                    badge.textContent = '🟢 실시간 서버 연결됨';
-                    badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
-
-                    const newData = snapshot.val() || {};
-
-                    if (isInitialSnapshotLoaded) {
-                        for (const [cellId, val] of Object.entries(newData)) {
-                            const prev = territories[cellId];
-                            if (!prev || prev.owner !== val.owner) {
-                                // 내 땅이 다른 유저에게 빼앗겼는지 먼저 체크 -> 푸시 알림 발송!
-                                if (prev && prev.owner === playerProfile.nickname && val.owner !== playerProfile.nickname) {
-                                    triggerTerritoryStolenAlert(val.owner, val.lat, val.lng);
-                                } else if (val.owner !== playerProfile.nickname) {
-                                    const landmark = getLandmarkInfo(val.lat, val.lng);
-                                    const spotText = landmark ? landmark.name : `${val.lat.toFixed(4)}, ${val.lng.toFixed(4)}`;
-                                    showLiveTicker(`🚩 ${val.owner}님이 새로운 [${spotText}] 구역을 점령했습니다!`);
-                                }
-                                break;
-                            }
+                    if (authMode === 'signup') {
+                        if (snap.exists()) {
+                            showAuthError('이미 사용 중인 닉네임입니다! 다른 닉네임을 입력하거나 로그인해 주세요.');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = '회원가입하고 시작하기';
+                            return;
                         }
+
+                        const assignedColor = selectedColor || pickRandomColor();
+                        const deviceInfo = await getReadableDeviceInfo();
+                        const ip = await fetchClientPublicIp();
+                        await set(playerRef, {
+                            nickname: nick,
+                            passHash: passHash,
+                            color: assignedColor,
+                            deviceInfo: deviceInfo,
+                            deviceId: deviceInfo,
+                            lastIp: ip,
+                            createdAt: Date.now(),
+                            lastSeenAt: Date.now()
+                        });
+
+                        playerProfile = { nickname: nick, color: assignedColor, passHash };
+                        localStorage.setItem('wc_nickname', nick);
+                        localStorage.setItem('wc_color', assignedColor);
+                        localStorage.setItem('wc_pass_hash', passHash);
+
+                        updateHudProfile();
+                        updateLeaderboardAndStats();
+                        modal.classList.add('hidden');
+                        showToast(`🎉 회원가입 완료! 내 영토 색상은 ${assignedColor.toUpperCase()} 입니다.`);
+                    } else {
+                        if (!snap.exists()) {
+                            showAuthError('존재하지 않는 닉네임입니다. 상단 [회원가입] 탭에서 계정을 먼저 만들어 주세요!');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = '로그인하고 입장하기';
+                            return;
+                        }
+
+                        const accountData = snap.val();
+                        if (accountData.passHash && accountData.passHash !== passHash) {
+                            showAuthError('비밀번호가 일치하지 않습니다! 본인 계정 비밀번호를 확인해 주세요.');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = '로그인하고 입장하기';
+                            return;
+                        }
+
+                        if (!accountData.passHash) {
+                            await update(playerRef, { passHash });
+                        }
+
+                        const accountColor = accountData.color || pickRandomColor();
+                        playerProfile = { nickname: nick, color: accountColor, passHash };
+                        localStorage.setItem('wc_nickname', nick);
+                        localStorage.setItem('wc_color', accountColor);
+                        localStorage.setItem('wc_pass_hash', passHash);
+
+                        recordClientDeviceAndIp(nick);
+                        updateHudProfile();
+                        updateLeaderboardAndStats();
+                        modal.classList.add('hidden');
+                        showToast(`👋 ${nick}님 환영합니다!`);
                     }
-
-                    territories = newData;
-                    isInitialSnapshotLoaded = true;
-
-                    updateHUDAndLeaderboard();
-                    scheduleMapRender();
-
-                    if (selectedCell) {
-                        openConquestPanel(selectedCell);
-                    }
-                },
-                (error) => {
-                    console.error('Firebase sync error:', error);
-                    badge.textContent = '🔴 서버 연결 오류';
-                    badge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30';
+                } catch (err) {
+                    console.error('Auth error:', err);
+                    showAuthError('서버 인증 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = authMode === 'login' ? '로그인하고 입장하기' : '회원가입하고 시작하기';
                 }
-            );
-        }
-
-        function updateHUDAndLeaderboard() {
-            const entries = Object.values(territories);
-            document.getElementById('hud-total-claimed').textContent = entries.length.toLocaleString();
-
-            const countsByOwner = {};
-            const colorByOwner = {};
-
-            entries.forEach((item) => {
-                if (!item || !item.owner) return;
-                countsByOwner[item.owner] = (countsByOwner[item.owner] || 0) + 1;
-                colorByOwner[item.owner] = item.color || '#ef4444';
             });
-
-            const myCount = playerProfile.nickname ? (countsByOwner[playerProfile.nickname] || 0) : 0;
-            document.getElementById('hud-my-count').textContent = myCount.toLocaleString();
-
-            const sorted = Object.entries(countsByOwner)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5);
-
-            const listEl = document.getElementById('leaderboard-list');
-            if (sorted.length === 0) {
-                listEl.innerHTML = `<div class="text-slate-400 text-center py-2">아직 점령된 땅이 없습니다!</div>`;
-                return;
-            }
-
-            const medals = ['🥇', '🥈', '🥉', '4위', '5위'];
-            listEl.innerHTML = sorted
-                .map(([owner, count], idx) => {
-                    const isMe = owner === playerProfile.nickname;
-                    const color = colorByOwner[owner] || '#ef4444';
-                    return `
-                        <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl ${isMe ? 'bg-amber-500/20 border border-amber-400/50' : 'bg-slate-800/80'}">
-                            <div class="flex items-center gap-1.5 truncate">
-                                <span class="font-extrabold text-amber-300 w-5 shrink-0">${medals[idx]}</span>
-                                <span class="w-2.5 h-2.5 rounded-full shrink-0 border border-white/70" style="background-color: ${color};"></span>
-                                <span class="font-bold truncate ${isMe ? 'text-amber-200' : 'text-white'}">${escapeHTML(owner)}</span>
-                            </div>
-                            <span class="font-extrabold text-emerald-400 shrink-0 ml-2">${count}칸</span>
-                        </div>
-                    `;
-                })
-                .join('');
         }
 
-        // --- 11. Toast & Ticker Helpers ---
-        let toastTimer = null;
-        function showToast(msg) {
-            showLiveTicker(msg);
-        }
-
-        function showLiveTicker(msg) {
-            const ticker = document.getElementById('live-ticker');
-            ticker.textContent = msg;
-            ticker.classList.remove('hidden');
-            if (toastTimer) clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => {
-                ticker.classList.add('hidden');
-            }, 3400);
-        }
-
-        function updateProfileHUD() {
+        function updateHudProfile() {
             const nick = playerProfile.nickname || '플레이어';
             document.getElementById('hud-nickname').textContent = nick;
             const avatar = document.getElementById('hud-avatar');
@@ -1578,149 +1438,240 @@
 
             const adminBadge = document.getElementById('chat-admin-badge');
             const chatInput = document.getElementById('chat-input');
-            if (isCurrentUserAdmin()) {
-                if (adminBadge) adminBadge.classList.remove('hidden');
-                if (chatInput) chatInput.placeholder = '채팅 또는 /whois, /deluser, /resetall';
+            if (nick === ADMIN_NICKNAME) {
+                adminBadge.classList.remove('hidden');
+                chatInput.placeholder = '채팅 입력 (/whois, /deluser, /resetall)';
             } else {
-                if (adminBadge) adminBadge.classList.add('hidden');
-                if (chatInput) chatInput.placeholder = '채팅 입력...';
+                adminBadge.classList.add('hidden');
+                chatInput.placeholder = '채팅 입력...';
             }
         }
 
-        // --- 12. DOM Event Listeners ---
-        function applySelectedColorPreview(color) {
-            selectedColor = color;
-            const previewEl = document.getElementById('random-color-preview');
-            if (previewEl) {
-                previewEl.style.backgroundColor = color;
-            }
-            const hexLabelEl = document.getElementById('random-color-hex');
-            if (hexLabelEl) {
-                hexLabelEl.textContent = color.toUpperCase();
-            }
+        // --- 7. Firebase Realtime Listeners ---
+        function listenToFirebase() {
+            const connectedRef = ref(db, '.info/connected');
+            onValue(connectedRef, (snap) => {
+                const badge = document.getElementById('server-status-badge');
+                if (snap.val() === true) {
+                    badge.textContent = '🟢 연결됨';
+                    badge.className = 'text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 whitespace-nowrap shrink-0';
+                } else {
+                    badge.textContent = '🔴 재연결';
+                    badge.className = 'text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30 whitespace-nowrap shrink-0';
+                }
+            });
+
+            const territoriesRef = ref(db, 'territories');
+            onValue(territoriesRef, (snapshot) => {
+                const nextTerritories = snapshot.val() || {};
+
+                if (isInitialSnapshotLoaded && playerProfile.nickname) {
+                    Object.entries(nextTerritories).forEach(([cellId, newData]) => {
+                        const prevData = territories[cellId];
+                        if (
+                            prevData &&
+                            prevData.owner === playerProfile.nickname &&
+                            newData &&
+                            newData.owner &&
+                            newData.owner !== playerProfile.nickname
+                        ) {
+                            triggerTerritoryStolenAlert(newData.owner, cellId);
+                        }
+                    });
+                }
+
+                territories = nextTerritories;
+                isInitialSnapshotLoaded = true;
+                updateLeaderboardAndStats();
+                scheduleMapRender();
+
+                if (selectedCell) {
+                    refreshConquestPanel();
+                }
+            });
+
+            const eventsQuery = query(ref(db, 'events'), limitToLast(1));
+            let isFirstEventLoad = true;
+            onValue(eventsQuery, (snapshot) => {
+                if (isFirstEventLoad) {
+                    isFirstEventLoad = false;
+                    return;
+                }
+                snapshot.forEach((child) => {
+                    const ev = child.val();
+                    if (ev && ev.message) {
+                        showLiveTicker(ev.message);
+                    }
+                });
+            });
+
+            const resetSignalRef = ref(db, 'system/forceReloadAt');
+            let initialReloadTimestamp = null;
+            onValue(resetSignalRef, (snapshot) => {
+                const serverTs = snapshot.val();
+                if (initialReloadTimestamp === null) {
+                    initialReloadTimestamp = serverTs || 0;
+                    return;
+                }
+                if (serverTs && serverTs > initialReloadTimestamp) {
+                    showToast('👑 관리자가 서버 강제 새로고침을 실행했습니다! 화면을 갱신합니다...');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 900);
+                }
+            });
+
+            listenToGlobalChat();
         }
 
-        function switchAuthMode(mode) {
-            authMode = mode;
-            const tabLogin = document.getElementById('tab-mode-login');
-            const tabSignup = document.getElementById('tab-mode-signup');
-            const colorSection = document.getElementById('signup-color-section');
-            const subtitle = document.getElementById('auth-subtitle');
-            const submitBtn = document.getElementById('btn-auth-submit');
-            const errorBox = document.getElementById('auth-error-box');
-
-            errorBox.classList.add('hidden');
-
-            if (mode === 'login') {
-                tabLogin.className = 'py-2 rounded-xl font-extrabold text-xs bg-white text-amber-600 shadow-sm transition cursor-pointer';
-                tabSignup.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer';
-                colorSection.classList.add('hidden');
-                subtitle.textContent = '기존 닉네임과 비밀번호로 로그인하면 기존 색상이 유지됩니다!';
-                submitBtn.textContent = '로그인하고 입장하기';
-            } else {
-                tabSignup.className = 'py-2 rounded-xl font-extrabold text-xs bg-white text-amber-600 shadow-sm transition cursor-pointer';
-                tabLogin.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer';
-                colorSection.classList.remove('hidden');
-                applySelectedColorPreview(pickRandomColor());
-                subtitle.textContent = '새 닉네임과 비밀번호, 랜덤 색상을 설정해 가입하세요!';
-                submitBtn.textContent = '회원가입 후 게임 시작하기';
-            }
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
-        function bindEvents() {
-            // Chat Toggle Collapse/Expand
-            document.getElementById('chat-header').addEventListener('click', () => {
+        function listenToGlobalChat() {
+            const chatMessagesEl = document.getElementById('chat-messages');
+            const chatQuery = query(ref(db, 'chat'), limitToLast(40));
+
+            onValue(chatQuery, (snapshot) => {
+                const items = [];
+                snapshot.forEach((child) => {
+                    items.push(child.val());
+                });
+
+                if (items.length === 0) {
+                    chatMessagesEl.innerHTML = '<div class="text-slate-400 text-[11px] text-center py-2">첫 번째 채팅 메시지를 남겨보세요!</div>';
+                    return;
+                }
+
+                chatMessagesEl.innerHTML = items.map((msg) => {
+                    const isAdmin = msg.sender === ADMIN_NICKNAME;
+                    const safeSender = escapeHtml(msg.sender || '익명');
+                    const safeText = escapeHtml(msg.text || '');
+                    const senderColor = msg.color || '#fbbf24';
+
+                    return `
+                        <div class="leading-snug break-words">
+                            ${isAdmin ? '<span class="inline-block text-[10px] font-extrabold px-1 py-0.2 rounded bg-rose-500/30 text-rose-300 border border-rose-400/50 mr-1">👑관리자</span>' : ''}
+                            <span class="font-extrabold" style="color:${senderColor};">${safeSender}</span>:
+                            <span class="text-slate-100">${safeText}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+            });
+        }
+
+        function setupGlobalChatControls() {
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const chatBody = document.getElementById('chat-body');
+            const toggleBtn = document.getElementById('btn-toggle-chat');
+            const chatHeader = document.getElementById('chat-header');
+
+            // 모바일에서는 시작 시 채팅창을 기본 접힘으로 두어 지도 가림 최소화
+            let isChatCollapsed = window.innerWidth < 640;
+            if (isChatCollapsed) {
+                chatBody.classList.add('hidden');
+                toggleBtn.textContent = '▲';
+            }
+
+            chatHeader.addEventListener('click', () => {
                 isChatCollapsed = !isChatCollapsed;
-                const chatBody = document.getElementById('chat-body');
-                const toggleBtn = document.getElementById('btn-toggle-chat');
                 if (isChatCollapsed) {
                     chatBody.classList.add('hidden');
                     toggleBtn.textContent = '▲';
                 } else {
                     chatBody.classList.remove('hidden');
                     toggleBtn.textContent = '▼';
+                    const msgBox = document.getElementById('chat-messages');
+                    msgBox.scrollTop = msgBox.scrollHeight;
                 }
             });
 
-            // Chat & Admin Command Submit
-            document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            chatForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!playerProfile.nickname) {
                     document.getElementById('nickname-modal').classList.remove('hidden');
                     return;
                 }
 
-                const chatInput = document.getElementById('chat-input');
                 const rawText = chatInput.value.trim();
                 if (!rawText) return;
                 chatInput.value = '';
 
-                if (rawText.startsWith('/')) {
-                    const parts = rawText.split(' ');
-                    const cmd = parts[0].toLowerCase();
-                    const argTarget = parts.slice(1).join(' ').trim();
-
-                    if (cmd === '/resetall') {
-                        if (!isCurrentUserAdmin()) {
-                            showToast('⛔ 권한이 없습니다. SisionPLUS 관리자만 사용할 수 있는 명령어입니다.');
-                            return;
-                        }
+                if (rawText === '/resetall') {
+                    if (playerProfile.nickname === ADMIN_NICKNAME) {
                         try {
                             await set(ref(db, 'system/forceReloadAt'), Date.now());
+                            showToast('👑 전체 접속자 강제 새로고침 신호를 전송했습니다!');
                         } catch (err) {
-                            console.error('Admin command failed:', err);
                             showToast('명령어 실행 중 오류가 발생했습니다.');
                         }
-                    } else if (cmd === '/whois') {
-                        if (!isCurrentUserAdmin()) {
-                            showToast('⛔ 권한이 없습니다. SisionPLUS 관리자만 사용할 수 있는 명령어입니다.');
-                            return;
-                        }
-                        if (!argTarget) {
-                            showToast('ℹ️ 사용법: /whois 닉네임');
+                    } else {
+                        showToast('⛔ /resetall 명령어는 관리자(SisionPLUS)만 사용할 수 있습니다.');
+                    }
+                    return;
+                }
+
+                if (rawText.startsWith('/whois ')) {
+                    if (playerProfile.nickname === ADMIN_NICKNAME) {
+                        const targetNick = rawText.replace('/whois ', '').trim();
+                        if (!targetNick) {
+                            showToast('사용법: /whois 닉네임');
                             return;
                         }
                         try {
-                            const targetKey = sanitizeFirebaseKey(argTarget);
-                            const snap = await get(ref(db, `players/${targetKey}`));
+                            const snap = await get(ref(db, `players/${targetNick}`));
                             if (!snap.exists()) {
-                                showToast(`❓ [${argTarget}] 계정을 찾을 수 없습니다.`);
-                                return;
+                                showToast(`❌ [${targetNick}] 계정을 찾을 수 없습니다.`);
+                            } else {
+                                const info = snap.val();
+                                const ipStr = info.lastIp || '미기록(구버전 접속)';
+                                const devStr = info.deviceInfo || info.deviceId || '미기록';
+                                showToast(`🕵️ [${targetNick}] IP: ${ipStr} / 기기: ${devStr}`);
                             }
-                            const info = snap.val();
-                            const ipStr = info.lastIp || '미기록(이전접속)';
-                            const devStr = info.deviceId || '미기록';
-                            const seenStr = info.lastSeenAt
-                                ? new Date(info.lastSeenAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-                                : '기록없음';
-                            showToast(`🔍 [${argTarget}] IP: ${ipStr} | 기기: ${devStr} | 최근: ${seenStr}`);
                         } catch (err) {
                             showToast('유저 정보 조회 중 오류가 발생했습니다.');
                         }
-                    } else if (cmd === '/deluser') {
-                        if (!isCurrentUserAdmin()) {
-                            showToast('⛔ 권한이 없습니다. SisionPLUS 관리자만 사용할 수 있는 명령어입니다.');
-                            return;
-                        }
-                        if (!argTarget || argTarget === ADMIN_NICKNAME) {
-                            showToast('ℹ️ 사용법: /deluser 삭제할닉네임');
+                    } else {
+                        showToast('⛔ /whois 명령어는 관리자(SisionPLUS)만 사용할 수 있습니다.');
+                    }
+                    return;
+                }
+
+                if (rawText.startsWith('/deluser ')) {
+                    if (playerProfile.nickname === ADMIN_NICKNAME) {
+                        const targetNick = rawText.replace('/deluser ', '').trim();
+                        if (!targetNick || targetNick === ADMIN_NICKNAME) {
+                            showToast('삭제할 대상 닉네임을 정확히 입력해 주세요.');
                             return;
                         }
                         try {
-                            const targetKey = sanitizeFirebaseKey(argTarget);
-                            await remove(ref(db, `players/${targetKey}`));
-                            showToast(`🗑️ [${argTarget}] 계정이 데이터베이스에서 삭제되었습니다.`);
+                            await remove(ref(db, `players/${targetNick}`));
+                            const ownedIds = Object.entries(territories)
+                                .filter(([, d]) => d && d.owner === targetNick)
+                                .map(([id]) => id);
+                            for (const cid of ownedIds) {
+                                await remove(ref(db, `territories/${cid}`));
+                            }
+                            showToast(`🗑️ [${targetNick}] 계정 및 영토 ${ownedIds.length}칸을 삭제했습니다.`);
                         } catch (err) {
                             showToast('계정 삭제 중 오류가 발생했습니다.');
                         }
                     } else {
-                        showToast(`❓ 알 수 없는 명령어입니다: ${cmd}`);
+                        showToast('⛔ /deluser 명령어는 관리자(SisionPLUS)만 사용할 수 있습니다.');
                     }
                     return;
                 }
 
                 try {
-                    await push(ref(db, 'chat_messages'), {
+                    await push(ref(db, 'chat'), {
                         sender: playerProfile.nickname,
                         color: playerProfile.color,
                         text: rawText,
@@ -1731,303 +1682,498 @@
                     showToast('채팅 전송에 실패했습니다.');
                 }
             });
+        }
 
-            // Auth Tab Switching
-            document.getElementById('tab-mode-login').addEventListener('click', () => switchAuthMode('login'));
-            document.getElementById('tab-mode-signup').addEventListener('click', () => switchAuthMode('signup'));
+        function updateLeaderboardAndStats() {
+            const counts = {};
+            const colors = {};
+            let totalClaimed = 0;
 
-            // Macro Captcha 3-Stage Unlock Form
-            document.getElementById('macro-captcha-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const input1 = document.getElementById('input-macro-captcha-1');
-                const input2 = document.getElementById('input-macro-captcha-2');
-                const input3 = document.getElementById('input-macro-captcha-3');
-                const errEl = document.getElementById('macro-captcha-error');
-
-                const val1 = (input1.value || '').trim().toLowerCase();
-                const val2 = (input2.value || '').trim();
-                const val3 = (input3.value || '').trim();
-
-                const passStage1 = val1 === 'imnoauto';
-                const passStage2 = macroWarningCount < 3 || val2 === '나는 오토가 아닙니다';
-                const passStage3 = macroWarningCount <= 5 || val3 === currentHardHangul;
-
-                if (passStage1 && passStage2 && passStage3) {
-                    isMacroLocked = false;
-                    identicalIntervalStreak = 0;
-                    baseIntervalMs = null;
-                    lastValidClickTime = 0;
-                    errEl.classList.add('hidden');
-                    document.getElementById('macro-captcha-modal').classList.add('hidden');
-                    playTone(660, 'sine', 0.14, 0.18);
-                    showToast('✅ 인증 완료! 다시 점령을 계속할 수 있습니다.');
-                } else {
-                    errEl.classList.remove('hidden');
-                    playTone(180, 'sawtooth', 0.18, 0.18);
-                }
+            Object.values(territories).forEach((t) => {
+                if (!t || !t.owner) return;
+                totalClaimed++;
+                counts[t.owner] = (counts[t.owner] || 0) + 1;
+                colors[t.owner] = t.color || '#f59e0b';
             });
 
-            // Initialize Random Color Preview & Reroll Button
-            applySelectedColorPreview(selectedColor);
-            document.getElementById('btn-reroll-color').addEventListener('click', () => {
-                applySelectedColorPreview(pickRandomColor());
-            });
+            const myCount = counts[playerProfile.nickname] || 0;
+            document.getElementById('hud-my-count').textContent = myCount.toLocaleString();
+            document.getElementById('hud-total-claimed').textContent = totalClaimed.toLocaleString();
 
-            // Login / Signup Form Submit
-            document.getElementById('nickname-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const nickInput = document.getElementById('input-nickname').value.trim();
-                const passInput = document.getElementById('input-password').value;
-                const errorBox = document.getElementById('auth-error-box');
-                const submitBtn = document.getElementById('btn-auth-submit');
+            const sorted = Object.entries(counts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
 
-                if (!nickInput || passInput.length < 4) {
-                    errorBox.textContent = '닉네임과 4자리 이상의 비밀번호를 입력해 주세요.';
-                    errorBox.classList.remove('hidden');
-                    return;
-                }
+            const listEl = document.getElementById('leaderboard-list');
+            if (sorted.length === 0) {
+                listEl.innerHTML = '<div class="text-slate-400 text-center py-2">아직 점령된 땅이 없습니다!</div>';
+                return;
+            }
 
-                errorBox.classList.add('hidden');
-                submitBtn.disabled = true;
-                submitBtn.textContent = authMode === 'login' ? '로그인 확인 중...' : '회원가입 처리 중...';
+            const medals = ['🥇', '🥈', '🥉', '4위', '5위'];
+            listEl.innerHTML = sorted
+                .map(([owner, count], idx) => {
+                    const isMe = owner === playerProfile.nickname;
+                    return `
+                        <div class="flex items-center justify-between px-2 py-1 rounded-xl ${isMe ? 'bg-amber-500/20 border border-amber-400/50' : 'bg-slate-800/75'}">
+                            <div class="flex items-center gap-1.5 truncate">
+                                <span class="font-bold text-[11px] w-5 text-center">${medals[idx]}</span>
+                                <span class="w-2.5 h-2.5 rounded-full shrink-0 border border-white/60" style="background:${colors[owner]}"></span>
+                                <span class="font-bold truncate ${isMe ? 'text-amber-300' : 'text-white'}">${owner}</span>
+                            </div>
+                            <span class="font-extrabold text-emerald-400 shrink-0 ml-1.5">${count.toLocaleString()}칸</span>
+                        </div>
+                    `;
+                })
+                .join('');
+        }
 
+        // --- 8. Territory Stolen Push Notification & Friend Invite ---
+        function requestBrowserNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().catch(() => {});
+            }
+        }
+
+        function triggerTerritoryStolenAlert(attackerName, cellId) {
+            if (!stealAlertEnabled) return;
+            const alertMessage = `🚨 ${attackerName}님이 땅을 빼앗았습니다!`;
+
+            showLiveTicker(alertMessage);
+            playTone(260, 'sawtooth', 0.16, 0.16);
+
+            if ('Notification' in window && Notification.permission === 'granted') {
                 try {
-                    const authRes = await authenticatePlayer(authMode, nickInput, passInput, selectedColor);
-                    if (!authRes.ok) {
-                        errorBox.textContent = authRes.error;
-                        errorBox.classList.remove('hidden');
-                        return;
-                    }
-
-                    playerProfile = {
-                        nickname: nickInput,
-                        color: authRes.color,
-                        passHash: authRes.passHash
+                    const notif = new Notification('클릭땅 (ClickLand) 영토 침공 경보!', {
+                        body: `${attackerName}님이 땅을 빼앗았습니다! (${cellId}) 지금 접속해서 되찾으세요!`,
+                        tag: 'clickland-territory-stolen'
+                    });
+                    notif.onclick = () => {
+                        window.focus();
+                        notif.close();
                     };
+                } catch (e) {}
+            }
+        }
 
-                    localStorage.setItem('wc_nickname', nickInput);
-                    localStorage.setItem('wc_color', authRes.color);
-                    localStorage.setItem('wc_pass_hash', authRes.passHash);
-                    localStorage.setItem('wc_pass_raw', passInput);
+        function updateStealAlertToggleUI() {
+            const btn = document.getElementById('btn-toggle-steal-alert');
+            if (!btn) return;
+            if (stealAlertEnabled) {
+                btn.textContent = 'ON';
+                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-emerald-500 text-slate-950 transition cursor-pointer shrink-0';
+            } else {
+                btn.textContent = 'OFF';
+                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-slate-700 text-slate-300 transition cursor-pointer shrink-0';
+            }
+        }
 
-                    updateProfileHUD();
-                    updateHUDAndLeaderboard();
-                    document.getElementById('nickname-modal').classList.add('hidden');
-                    showToast(
-                        authMode === 'login'
-                            ? `다시 오셨군요, ${nickInput}님! 기존 영토 색상이 유지되었습니다.`
-                            : `🎉 회원가입 완료! ${nickInput}님 환영합니다!`
-                    );
-
-                    if ('Notification' in window && Notification.permission === 'default') {
-                        try { await Notification.requestPermission(); } catch (_) {}
-                    }
-                } catch (err) {
-                    console.error('Auth error:', err);
-                    errorBox.textContent = '서버 인증 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
-                    errorBox.classList.remove('hidden');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = authMode === 'login' ? '로그인하고 입장하기' : '회원가입 후 게임 시작하기';
-                }
-            });
-
-            // Top Invite Button
-            document.getElementById('btn-invite-friend').addEventListener('click', copyInviteText);
-
-            // Open Settings / Notification / Account Switch Modal
-            document.getElementById('btn-open-settings').addEventListener('click', () => {
-                updateStealAlertUI();
-                document.getElementById('settings-modal').classList.remove('hidden');
-            });
-            document.getElementById('btn-close-settings-modal').addEventListener('click', () => {
-                document.getElementById('settings-modal').classList.add('hidden');
-            });
-            document.getElementById('btn-toggle-steal-alert').addEventListener('click', async () => {
-                stealAlertEnabled = !stealAlertEnabled;
-                localStorage.setItem('wc_steal_alert', String(stealAlertEnabled));
-                updateStealAlertUI();
-                if (stealAlertEnabled && 'Notification' in window && Notification.permission === 'default') {
-                    try { await Notification.requestPermission(); } catch (_) {}
-                }
-                showToast(stealAlertEnabled ? '🚨 영토 침공 푸시 알림을 켰습니다.' : '🔕 영토 침공 알림을 껐습니다.');
-            });
-            document.getElementById('btn-copy-invite').addEventListener('click', copyInviteText);
-            document.getElementById('btn-sms-invite').addEventListener('click', () => {
-                const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? '&' : '?';
-                window.location.href = `sms:${sep}body=${encodeURIComponent(INVITE_MESSAGE_TEXT)}`;
-            });
-            document.getElementById('btn-switch-account').addEventListener('click', () => {
-                document.getElementById('settings-modal').classList.add('hidden');
-                switchAuthMode('login');
-                document.getElementById('input-nickname').value = playerProfile.nickname;
-                document.getElementById('input-password').value = localStorage.getItem('wc_pass_raw') || '';
-                document.getElementById('auth-error-box').classList.add('hidden');
-                document.getElementById('nickname-modal').classList.remove('hidden');
-            });
-
-            // Toggle Sound
-            document.getElementById('btn-toggle-sound').addEventListener('click', (e) => {
-                soundEnabled = !soundEnabled;
-                e.currentTarget.textContent = soundEnabled ? '🔊' : '🔇';
-                showToast(soundEnabled ? '효과음을 켰습니다.' : '효과음을 껐습니다.');
-            });
-
-            // Toggle Street Map <-> Satellite Map
-            document.getElementById('btn-toggle-map-style').addEventListener('click', () => {
-                isSatelliteMode = !isSatelliteMode;
-                if (activeTileLayer && map.hasLayer(activeTileLayer)) {
-                    map.removeLayer(activeTileLayer);
-                }
-                activeTileLayer = createBaseTileLayer(isSatelliteMode).addTo(map);
-                document.getElementById('map-style-label').textContent = isSatelliteMode ? '일반지도' : '위성지도';
-                showToast(isSatelliteMode ? '고해상도 위성지도로 전환했습니다.' : '일반 도로 지도로 전환했습니다.');
-            });
-
-            // Preset Location Select
-            document.getElementById('preset-select').addEventListener('change', (e) => {
-                const [lat, lng, zoom] = e.target.value.split(',').map(Number);
-                map.setView([lat, lng], zoom);
-            });
-
-            // Global Place Search (Nominatim)
-            document.getElementById('search-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const query = document.getElementById('search-input').value.trim();
-                if (!query) return;
-
-                showToast(`'${query}' 위치 검색 중...`);
+        async function shareOrCopyInviteMessage() {
+            if (navigator.share) {
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
-                    const data = await res.json();
-                    if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lng = parseFloat(data[0].lon);
-                        map.setView([lat, lng], 19);
-                        showToast(`📍 ${data[0].display_name.split(',')[0]} 이동 완료!`);
-                    } else {
-                        showToast('검색 결과를 찾지 못했습니다.');
-                    }
-                } catch (err) {
-                    showToast('장소 검색 중 오류가 발생했습니다.');
-                }
-            });
+                    await navigator.share({
+                        title: '클릭땅 (ClickLand) - 땅따먹기 게임',
+                        text: INVITE_MESSAGE_TEXT
+                    });
+                    return;
+                } catch (e) {}
+            }
+            copyInviteMessageToClipboard();
+        }
 
-            // My GPS Location
-            document.getElementById('btn-my-gps').addEventListener('click', () => {
-                if (!navigator.geolocation) {
-                    showToast('이 브라우저에서는 GPS 위치 기능을 지원하지 않습니다.');
+        async function copyInviteMessageToClipboard() {
+            try {
+                await navigator.clipboard.writeText(INVITE_MESSAGE_TEXT);
+                showToast('📋 친구 초대 문구가 복사되었습니다! 카톡이나 문자에 붙여넣기 하세요.');
+            } catch (e) {
+                const ta = document.createElement('textarea');
+                ta.value = INVITE_MESSAGE_TEXT;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('📋 친구 초대 문구가 복사되었습니다!');
+            }
+        }
+
+        function openSmsInviteApp() {
+            const encoded = encodeURIComponent(INVITE_MESSAGE_TEXT);
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            window.location.href = isIOS ? `sms:&body=${encoded}` : `sms:?body=${encoded}`;
+        }
+
+        // --- 9. Conquest & Click Interaction Logic ---
+        function handleCellInteraction(cell) {
+            if (!playerProfile.nickname) {
+                document.getElementById('nickname-modal').classList.remove('hidden');
+                return;
+            }
+            if (isMacroLocked) {
+                openMacroCaptchaModal(false);
+                return;
+            }
+
+            const now = Date.now();
+            if (lastConquerCompletedAt > 0 && now - lastConquerCompletedAt < 1500) {
+                rapidSwitchStreak++;
+                if (rapidSwitchStreak >= 2) {
+                    rapidSwitchStreak = 0;
+                    openMacroCaptchaModal(true);
                     return;
                 }
-                showToast('현재 GPS 위치를 찾는 중...');
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        map.setView([pos.coords.latitude, pos.coords.longitude], 19);
-                        showToast('📍 현재 내 위치로 이동했습니다!');
-                    },
-                    () => {
-                        showToast('위치 권한이 거부되었거나 위치를 가져올 수 없습니다.');
-                    },
-                    { enableHighAccuracy: true, timeout: 8000 }
-                );
-            });
+            } else {
+                rapidSwitchStreak = 0;
+            }
 
-            // Jump to My Owned Territory
-            document.getElementById('btn-jump-my-land').addEventListener('click', () => {
-                const myLands = Object.values(territories).filter(t => t && t.owner === playerProfile.nickname);
-                if (myLands.length === 0) {
-                    showToast('아직 점령한 내 영토가 없습니다. 격자를 클릭해 점령해 보세요!');
-                    return;
+            selectedCell = cell;
+            openConquestPanel(cell);
+            scheduleMapRender();
+        }
+
+        function openConquestPanel(cell) {
+            const panel = document.getElementById('conquest-panel');
+            panel.classList.remove('hidden');
+            refreshConquestPanel();
+        }
+
+        function refreshConquestPanel() {
+            if (!selectedCell) return;
+            const cell = selectedCell;
+            const existing = territories[cell.id];
+            const req = getRequiredClicksForCell(cell);
+
+            const badge = document.getElementById('panel-badge');
+            const landmarkBadge = document.getElementById('panel-landmark-badge');
+            const title = document.getElementById('panel-title');
+            const coords = document.getElementById('panel-coords');
+            const siegeInfo = document.getElementById('panel-siege-info');
+            const btnClick = document.getElementById('btn-click-conquer');
+
+            coords.textContent = `${cell.centerLat.toFixed(6)}, ${cell.centerLng.toFixed(6)}`;
+
+            if (req.landmark) {
+                landmarkBadge.textContent = `🏛️ ${req.landmark.name} (기본 150클릭)`;
+                landmarkBadge.classList.remove('hidden');
+            } else {
+                landmarkBadge.classList.add('hidden');
+            }
+
+            siegeInfo.textContent = `누적 공성 할증: ${req.conquerCount}회 (+${req.siegeBonus}클릭) · 총 ${req.totalRequired}클릭 필요`;
+
+            const isMine = existing && existing.owner === playerProfile.nickname;
+
+            if (isMine) {
+                badge.textContent = '👑 내 영토';
+                badge.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-400/50';
+                title.textContent = `${playerProfile.nickname}님의 방어 구역`;
+                btnClick.disabled = true;
+                btnClick.textContent = '✅ 이미 점령한 내 영토입니다';
+                btnClick.className = 'w-full py-3 sm:py-3.5 rounded-2xl bg-slate-700 text-slate-300 font-game text-base sm:text-lg cursor-not-allowed';
+                updateProgressBarUI(req.totalRequired, req.totalRequired);
+            } else if (existing && existing.owner) {
+                badge.textContent = `⚔️ ${existing.owner}의 영토`;
+                badge.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 border border-rose-400/50';
+                title.textContent = `${existing.owner}의 땅 빼앗기!`;
+                btnClick.disabled = false;
+                btnClick.textContent = '⚔️ 광클해서 땅 빼앗기!';
+                btnClick.className = 'w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 active:scale-95 text-white font-game text-lg sm:text-xl shadow-lg shadow-rose-500/30 transition cursor-pointer btn-pulse';
+                const current = localClickProgress[cell.id] || 0;
+                updateProgressBarUI(current, req.totalRequired);
+            } else {
+                badge.textContent = '🏳️ 빈 땅 (무주지)';
+                badge.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40';
+                title.textContent = req.landmark ? req.landmark.name : '5m × 5m 구역 점령전';
+                btnClick.disabled = false;
+                btnClick.textContent = '👆 광클해서 점령하기!';
+                btnClick.className = 'w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-game text-lg sm:text-xl shadow-lg shadow-orange-500/30 transition cursor-pointer btn-pulse';
+                const current = localClickProgress[cell.id] || 0;
+                updateProgressBarUI(current, req.totalRequired);
+            }
+        }
+
+        function updateProgressBarUI(current, total) {
+            const clamped = Math.min(current, total);
+            const pct = total > 0 ? Math.floor((clamped / total) * 100) : 0;
+            document.getElementById('panel-progress-text').textContent = `${clamped} / ${total} 클릭 (${pct}%)`;
+            document.getElementById('panel-progress-bar').style.width = `${pct}%`;
+        }
+
+        function spawnFloatingClickText(x, y, text = '+1') {
+            const el = document.createElement('div');
+            el.className = 'floating-click-text';
+            el.textContent = text;
+            const jitterX = (Math.random() - 0.5) * 44;
+            el.style.left = `${x + jitterX}px`;
+            el.style.top = `${y - 14}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 680);
+        }
+
+        async function executeConquerClaim(cell) {
+            const territoryRef = ref(db, `territories/${cell.id}`);
+            const existingBefore = territories[cell.id];
+            const previousOwner = existingBefore && existingBefore.owner ? existingBefore.owner : null;
+
+            try {
+                await runTransaction(territoryRef, (currentData) => {
+                    const prevCount = currentData && typeof currentData.conquerCount === 'number' ? currentData.conquerCount : 0;
+                    return {
+                        owner: playerProfile.nickname,
+                        color: playerProfile.color,
+                        lat: cell.centerLat,
+                        lng: cell.centerLng,
+                        conquerCount: prevCount + 1,
+                        updatedAt: Date.now()
+                    };
+                });
+
+                const eventMsg = previousOwner && previousOwner !== playerProfile.nickname
+                    ? `⚔️ [${playerProfile.nickname}]님이 [${previousOwner}]님의 영토를 빼앗았습니다!`
+                    : `🚩 [${playerProfile.nickname}]님이 새로운 5m × 5m 영토를 점령했습니다!`;
+
+                await push(ref(db, 'events'), {
+                    message: eventMsg,
+                    timestamp: Date.now()
+                });
+
+                localClickProgress[cell.id] = 0;
+                lastConquerCompletedAt = Date.now();
+                playConquerFanfare();
+                showToast(`🎉 [${cell.id}] 구역을 점령했습니다!`);
+            } catch (err) {
+                console.error('Claim transaction failed:', err);
+                showToast('서버 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
+            }
+        }
+
+        // --- 10. UI Helper & Event Bindings ---
+        let toastTimer = null;
+        function showToast(msg) {
+            const ticker = document.getElementById('live-ticker');
+            ticker.textContent = msg;
+            ticker.classList.remove('hidden');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => ticker.classList.add('hidden'), 3000);
+        }
+
+        function showLiveTicker(msg) {
+            showToast(msg);
+        }
+
+        function setupControls() {
+            // Leaderboard Collapse Toggle (Default Collapsed on Mobile so Map & Search never overlap!)
+            const lbHeader = document.getElementById('leaderboard-header');
+            const lbList = document.getElementById('leaderboard-list');
+            const lbToggleBtn = document.getElementById('btn-toggle-leaderboard');
+            let isLbCollapsed = window.innerWidth < 640;
+
+            if (isLbCollapsed) {
+                lbList.classList.add('hidden');
+                lbToggleBtn.textContent = '▶';
+            }
+
+            lbHeader.addEventListener('click', () => {
+                isLbCollapsed = !isLbCollapsed;
+                if (isLbCollapsed) {
+                    lbList.classList.add('hidden');
+                    lbToggleBtn.textContent = '▶';
+                } else {
+                    lbList.classList.remove('hidden');
+                    lbToggleBtn.textContent = '▼';
                 }
-                const target = myLands[myLands.length - 1];
-                map.setView([target.lat, target.lng], 18);
-                showToast('👑 내 영토로 이동했습니다!');
             });
 
-            // Auto Zoom In to Grid Level
-            document.getElementById('btn-auto-zoom-in').addEventListener('click', () => {
-                map.setZoom(18);
+            // Conquer Click Button
+            const btnClick = document.getElementById('btn-click-conquer');
+            btnClick.addEventListener('click', (e) => {
+                if (!selectedCell) return;
+                const existing = territories[selectedCell.id];
+                if (existing && existing.owner === playerProfile.nickname) return;
+
+                if (!verifyHumanClick(e)) return;
+
+                const req = getRequiredClicksForCell(selectedCell);
+                const nextCount = (localClickProgress[selectedCell.id] || 0) + 1;
+                localClickProgress[selectedCell.id] = nextCount;
+
+                const rect = btnClick.getBoundingClientRect();
+                const cx = e.clientX || rect.left + rect.width / 2;
+                const cy = e.clientY || rect.top;
+                spawnFloatingClickText(cx, cy, '+1 👆');
+                playClickSound(nextCount / req.totalRequired);
+
+                updateProgressBarUI(nextCount, req.totalRequired);
+
+                if (nextCount >= req.totalRequired) {
+                    btnClick.disabled = true;
+                    btnClick.textContent = '⏳ 서버에 점령 기록 중...';
+                    executeConquerClaim(selectedCell);
+                }
             });
 
-            // Close Conquest Panel
             document.getElementById('btn-close-panel').addEventListener('click', () => {
                 selectedCell = null;
                 document.getElementById('conquest-panel').classList.add('hidden');
                 scheduleMapRender();
             });
 
-            // Conquest Click Button
-            const attackBtn = document.getElementById('btn-click-conquer');
-            attackBtn.addEventListener('click', async (e) => {
-                attackBtn.blur();
+            document.getElementById('btn-auto-zoom-in').addEventListener('click', () => {
+                map.setZoom(19, { animate: true });
+            });
 
-                if (!verifyHumanClick(e)) {
-                    e.preventDefault();
-                    return;
-                }
+            document.getElementById('preset-select').addEventListener('change', (e) => {
+                const [lat, lng, z] = e.target.value.split(',').map(Number);
+                map.setView([lat, lng], z, { animate: true });
+            });
 
-                if (!selectedCell || !playerProfile.nickname) return;
-                const existing = territories[selectedCell.id];
-                if (existing && existing.owner === playerProfile.nickname) return;
-
-                const { required } = getRequiredClicksForCell(selectedCell);
-                const nextClicks = (localClickProgress[selectedCell.id] || 0) + 1;
-                localClickProgress[selectedCell.id] = nextClicks;
-
-                playClickSound(nextClicks / required);
-                spawnFloatingClickEffect(e.clientX, e.clientY, `+1 (${nextClicks}/${required})`);
-                updateConquestProgressUI(nextClicks, required);
-
-                if (nextClicks >= required) {
-                    await executeConquerClaim(selectedCell);
+            document.getElementById('search-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const q = document.getElementById('search-input').value.trim();
+                if (!q) return;
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`);
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        map.setView([lat, lng], 19, { animate: true });
+                        showToast(`📍 '${data[0].display_name.split(',')[0]}' 위치로 이동했습니다!`);
+                    } else {
+                        showToast('검색 결과를 찾지 못했습니다. 다른 도시/장소명을 입력해 보세요.');
+                    }
+                } catch (err) {
+                    showToast('장소 검색 중 네트워크 오류가 발생했습니다.');
                 }
             });
 
-            // Global Chat Hotkeys ('t'/'T' to open & focus chat, '/' to open & start command)
-            document.addEventListener('keydown', (e) => {
-                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-                if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+            document.getElementById('btn-my-gps').addEventListener('click', () => {
+                if (!navigator.geolocation) {
+                    showToast('이 브라우저에서는 GPS 위치 기능을 지원하지 않습니다.');
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        map.setView([pos.coords.latitude, pos.coords.longitude], 19, { animate: true });
+                        showToast('📍 현재 내 GPS 위치로 이동했습니다!');
+                    },
+                    () => {
+                        showToast('위치 권한이 거부되었거나 GPS 신호를 가져올 수 없습니다.');
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
+                );
+            });
 
-                const isLoginOpen = !document.getElementById('nickname-modal').classList.contains('hidden');
-                const isCaptchaOpen = !document.getElementById('macro-captcha-modal').classList.contains('hidden');
-                const isSettingsOpen = !document.getElementById('settings-modal').classList.contains('hidden');
-                if (isLoginOpen || isCaptchaOpen || isSettingsOpen || e.ctrlKey || e.metaKey || e.altKey) return;
+            document.getElementById('btn-jump-my-land').addEventListener('click', () => {
+                const myEntry = Object.entries(territories).find(([, d]) => d && d.owner === playerProfile.nickname);
+                if (!myEntry) {
+                    showToast('아직 점령한 내 영토가 없습니다! 지도의 빈 칸을 클릭해 점령해 보세요.');
+                    return;
+                }
+                const cell = getCellFromId(myEntry[0]);
+                if (cell) {
+                    map.setView([cell.centerLat, cell.centerLng], 19, { animate: true });
+                    showToast('🚩 내 영토 위치로 이동했습니다!');
+                }
+            });
 
-                const key = e.key;
-                if (key === 't' || key === 'T' || key === 'ㅅ' || key === '/') {
-                    e.preventDefault();
+            document.getElementById('btn-toggle-sound').addEventListener('click', (e) => {
+                soundEnabled = !soundEnabled;
+                e.currentTarget.textContent = soundEnabled ? '🔊' : '🔇';
+                showToast(soundEnabled ? '효과음을 켰습니다.' : '효과음을 껐습니다.');
+            });
 
-                    if (isChatCollapsed) {
-                        isChatCollapsed = false;
-                        document.getElementById('chat-body').classList.remove('hidden');
-                        document.getElementById('btn-toggle-chat').textContent = '▼';
+            document.getElementById('btn-invite-friend').addEventListener('click', () => {
+                shareOrCopyInviteMessage();
+            });
+
+            const settingsModal = document.getElementById('settings-modal');
+            updateStealAlertToggleUI();
+
+            document.getElementById('btn-open-settings').addEventListener('click', () => {
+                updateStealAlertToggleUI();
+                settingsModal.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-settings-modal').addEventListener('click', () => {
+                settingsModal.classList.add('hidden');
+            });
+
+            document.getElementById('btn-toggle-steal-alert').addEventListener('click', () => {
+                stealAlertEnabled = !stealAlertEnabled;
+                localStorage.setItem('wc_steal_alert', String(stealAlertEnabled));
+                updateStealAlertToggleUI();
+                if (stealAlertEnabled) {
+                    requestBrowserNotificationPermission();
+                    showToast('🚨 땅 빼앗김 푸시 알림이 켜졌습니다!');
+                } else {
+                    showToast('🔕 땅 빼앗김 푸시 알림이 꺼졌습니다.');
+                }
+            });
+
+            document.getElementById('btn-copy-invite').addEventListener('click', () => {
+                copyInviteMessageToClipboard();
+            });
+
+            document.getElementById('btn-sms-invite').addEventListener('click', () => {
+                openSmsInviteApp();
+            });
+
+            document.getElementById('btn-switch-account').addEventListener('click', () => {
+                settingsModal.classList.add('hidden');
+                setAuthMode('login');
+                document.getElementById('nickname-modal').classList.remove('hidden');
+            });
+
+            document.getElementById('macro-captcha-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const input1 = document.getElementById('input-macro-captcha-1').value.trim().toLowerCase();
+                const input2 = document.getElementById('input-macro-captcha-2').value.trim();
+                const input3 = document.getElementById('input-macro-captcha-3').value.trim();
+                const errEl = document.getElementById('macro-captcha-error');
+
+                const passStage1 = currentCaptchaCode1 && input1 === currentCaptchaCode1.toLowerCase();
+                const passStage2 = macroWarningCount < 3 || (currentCaptchaPhrase2 && input2 === currentCaptchaPhrase2);
+                const passStage3 = macroWarningCount <= 5 || (currentHardHangul && input3 === currentHardHangul);
+
+                if (passStage1 && passStage2 && passStage3) {
+                    isMacroLocked = false;
+                    identicalIntervalStreak = 0;
+                    fastJitterStreak = 0;
+                    teleportClickStreak = 0;
+                    rapidSwitchStreak = 0;
+                    recentClickTimestamps = [];
+                    baseIntervalMs = null;
+                    lastValidClickTime = 0;
+                    currentCaptchaCode1 = '';
+                    currentCaptchaPhrase2 = '';
+                    currentHardHangul = '';
+                    errEl.classList.add('hidden');
+                    document.getElementById('macro-captcha-modal').classList.add('hidden');
+                    playTone(660, 'sine', 0.14, 0.18);
+                    showToast('✅ Canvas 보안 인증 완료! 다시 점령을 계속할 수 있습니다.');
+                } else {
+                    currentCaptchaCode1 = generateRandomAlphaNumCode(6);
+                    drawNoisyCaptchaCanvas('macro-canvas-1', currentCaptchaCode1, '#fde047', 22);
+                    if (macroWarningCount >= 3) {
+                        currentCaptchaPhrase2 = generateRandomStage2Phrase();
+                        drawNoisyCaptchaCanvas('macro-canvas-2', currentCaptchaPhrase2, '#7dd3fc', 17);
                     }
-
-                    const chatInput = document.getElementById('chat-input');
-                    chatInput.focus();
-
-                    if (key === '/' && !chatInput.value.startsWith('/')) {
-                        chatInput.value = '/' + chatInput.value;
+                    if (macroWarningCount > 5) {
+                        currentHardHangul = generateHardHangul4();
+                        drawNoisyCaptchaCanvas('macro-hard-hangul-target', currentHardHangul, '#f0abfc', 24);
                     }
+                    errEl.classList.remove('hidden');
+                    playTone(180, 'sawtooth', 0.18, 0.18);
                 }
             });
         }
 
-        // --- 13. Bootstrap Application ---
-        window.addEventListener('DOMContentLoaded', () => {
-            initMap();
-            bindEvents();
-            setupFirebaseSync();
-            setupChatAndAdminSync();
-
-            if (playerProfile.nickname && playerProfile.passHash) {
-                document.getElementById('input-nickname').value = playerProfile.nickname;
-                document.getElementById('input-password').value = localStorage.getItem('wc_pass_raw') || '';
-                updateProfileHUD();
-                document.getElementById('nickname-modal').classList.add('hidden');
-                syncPlayerDeviceTelemetry(playerProfile.nickname);
-            }
-        });
+        // --- Boot Game ---
+        initMap();
+        setupAuthModal();
+        setupControls();
+        setupGlobalChatControls();
+        listenToFirebase();
     </script>
 </body>
 </html>
