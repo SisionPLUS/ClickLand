@@ -2444,6 +2444,44 @@
                 document.getElementById('nickname-modal').classList.remove('hidden');
             });
 
+            // Macro Captcha 3-Stage Unlock Form (새로고침 방지 및 인증 처리)
+            const macroForm = document.getElementById('macro-captcha-form');
+            if (macroForm) {
+                macroForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const input1 = document.getElementById('input-macro-captcha-1');
+                    const input2 = document.getElementById('input-macro-captcha-2');
+                    const input3 = document.getElementById('input-macro-captcha-3');
+                    const errEl = document.getElementById('macro-captcha-error');
+
+                    const val1 = (input1 ? input1.value : '').trim().toLowerCase();
+                    const val2 = (input2 ? input2.value : '').trim();
+                    const val3 = (input3 ? input3.value : '').trim();
+
+                    const passStage1 = val1 === 'imnoauto';
+                    const passStage2 = macroWarningCount < 3 || val2 === '나는 오토가 아닙니다';
+                    const passStage3 = macroWarningCount <= 5 || val3 === currentHardHangul;
+
+                    if (passStage1 && passStage2 && passStage3) {
+                        isMacroLocked = false;
+                        identicalIntervalStreak = 0;
+                        baseIntervalMs = null;
+                        stationaryClickStreak = 0;
+                        teleportClickStreak = 0;
+                        lastValidClickTime = 0;
+                        if (errEl) errEl.classList.add('hidden');
+                        document.getElementById('macro-captcha-modal').classList.add('hidden');
+                        playTone(660, 'sine', 0.14, 0.18);
+                        showToast('✅ 인증 완료! 다시 점령을 계속할 수 있습니다.');
+                    } else {
+                        if (errEl) errEl.classList.remove('hidden');
+                        playTone(180, 'sawtooth', 0.18, 0.18);
+                    }
+                });
+            }
+
             setupShopModal();
         }
 
