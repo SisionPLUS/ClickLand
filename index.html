@@ -14,7 +14,7 @@
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <!-- Google Fonts: Jua & Pretendard/Inter -->
+    <!-- Google Fonts: Jua & Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Jua&display=swap" rel="stylesheet">
     <style>
         * {
@@ -68,7 +68,6 @@
             color: #1e293b !important;
             background: rgba(255, 255, 255, 0.95) !important;
         }
-        /* Territory Label Tooltip */
         .territory-label {
             background: rgba(15, 23, 42, 0.92);
             color: #ffffff;
@@ -507,10 +506,12 @@
                 <div id="macro-stage-3-box" class="hidden">
                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 mb-1">
                         <span>3. 고난도 랜덤 한글 4글자 (6회 이상 경고)</span>
-                        <span id="macro-hard-hangul-target" class="text-fuchsia-300 font-black text-sm tracking-widest select-none">찋쉡틓녲</span>
+                    </div>
+                    <div class="mb-1.5 py-2 px-3 rounded-xl bg-fuchsia-950/60 border border-fuchsia-400/50 text-center">
+                        <span id="macro-hard-hangul-target" class="text-fuchsia-200 font-black text-xl tracking-[0.25em] select-none">찋쉡틓녲</span>
                     </div>
                     <input id="input-macro-captcha-3" type="text" autocomplete="off" spellcheck="false"
-                        placeholder="위 어려운 4글자를 정확히 입력"
+                        placeholder="위 4글자를 그대로 입력"
                         class="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-600 focus:border-fuchsia-400 focus:outline-none text-center text-base font-black tracking-widest text-white" />
                 </div>
 
@@ -526,7 +527,6 @@
 
     <!-- Firebase SDK & Full Game Script -->
     <script type="module">
-        // 레거시 평문 비밀번호 잔여 키 즉시 파기
         localStorage.removeItem('wc_pass_raw');
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -589,10 +589,10 @@
             },
             equippedCursor: 'cursor_default',
             equippedSound: 'sound_default',
-            critTier: 0 // 0: 없음, 1: 1.1배 (10% 확률 2배), 2: 1.2배 (20% 확률 2배)
+            critTier: 0
         };
 
-        // --- Point Shop Catalog (나중에 커서 파일 경로/URL을 cursorUrl에 넣으면 바로 교체 가능!) ---
+        // --- Point Shop Catalog ---
         function buildSvgCursorDataUri(svgMarkup, hotX = 4, hotY = 4) {
             return `url("data:image/svg+xml;utf8,${encodeURIComponent(svgMarkup)}") ${hotX} ${hotY}, auto`;
         }
@@ -604,6 +604,7 @@
                 desc: '기본 브라우저 마우스 포인터입니다.',
                 price: 0,
                 previewIcon: '🖱️',
+                cursorUrl: '',
                 cursorCss: 'auto'
             },
             {
@@ -612,7 +613,6 @@
                 desc: '클릭땅 지도 위에서만 적용되는 황금빛 검 커서!',
                 price: 80,
                 previewIcon: '🗡️',
-                // 파일 교체 시: cursorUrl: './cursors/gold-sword.png' 형태로 지정 가능
                 cursorUrl: '',
                 cursorCss: buildSvgCursorDataUri(
                     `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M3 3 L14 7 L26 19 L22 23 L10 11 Z" fill="#facc15" stroke="#713f12" stroke-width="2"/><path d="M19 25 L25 19 L28 22 L22 28 Z" fill="#f97316" stroke="#431407" stroke-width="1.5"/><circle cx="27" cy="27" r="2.5" fill="#fde047"/></svg>`,
@@ -732,26 +732,17 @@
         const INVITE_MESSAGE_TEXT = `요즘 할 게임이 없어? 💩\n그럼 이 게임을 해봐! 클릭땅!👆\n클릭! 클릭! 누르면서 성장하는 땅따먹기! ⛱️\n회원가입 한번만 해도 바로 즐길 수 있는 게임이야! 🎮\n누구나 언제나 즐길 수 있는 클릭땅! 많이 플레이 해줘! 😀\n1차 서버 주소 👉 https://clickland.netlify.app/ 👈\n2차 서버 주소 👉 https://clickland-livid.vercel.app/ 👈\n3차 서버 주소 👉 http://clickland.kro.kr/ 👈`;
 
         let lastConquerCompletedAt = 0;
-        let rapidSwitchStreak = 0;
 
-        // --- Anti-Auto-Clicker Telemetry State ---
-        const IDENTICAL_INTERVAL_TOLERANCE_MS = 4;
-        const IDENTICAL_INTERVAL_LIMIT = 22;
-        const MAX_HUMAN_CPS = 20;
+        // --- Anti-Auto-Clicker Telemetry State (X ±10px, Y ±10px & ±10ms Speed) ---
+        const COORD_BOX_TOLERANCE_PX = 10;          // X ±10px, Y ±10px 좌표 반경
+        const IDENTICAL_INTERVAL_TOLERANCE_MS = 10; // ±10ms 동일 간격 오차
+        const MACRO_STREAK_LIMIT = 18;              // 위 두 조건을 동시에 18회 연속 충족 시 경고
         let baseIntervalMs = null;
-        let identicalIntervalStreak = 0;
+        let baseClickCoord = null;
+        let macroPatternStreak = 0;
         let isMacroLocked = false;
         let macroWarningCount = 0;
         let currentHardHangul = '찋쉡틓녲';
-        let recentClickTimestamps = [];
-        let lastClickCoord = null;
-        let stationaryClickStreak = 0;
-        let pointerMoveCountSinceLastClick = 0;
-        let teleportClickStreak = 0;
-
-        window.addEventListener('pointermove', () => {
-            pointerMoveCountSinceLastClick++;
-        }, { passive: true });
 
         // --- Human-Readable Device & OS Descriptor ---
         function mapSamsungModelToMarketingName(rawModel) {
@@ -894,9 +885,9 @@
 
         function generateHardHangul4() {
             const hardPool = [
-                '찋', '쉡', '틓', '녲', '뷁', '뤩', '쉥', '뗑', '쮀', '퀭',
-                '뽩', '쓻', '흴', '낅', '좳', '풻', '멻', '켵', '둟', '슳',
-                '톧', '뻵', '잚', '홁', '댦', '욿', '팗', '묐', '츩', '놟'
+                '찋', '쉡', '틓', '녲', '뷁', '뤩', '쉥', '뗑', '퀭', '쓻',
+                '흴', '낅', '좳', '풻', '멻', '켵', '둟', '슳', '톧', '잚',
+                '홁', '댦', '욿', '팗', '묐', '츩', '놟', '꿄', '뜑', '촣'
             ];
             let res = '';
             for (let i = 0; i < 4; i++) {
@@ -910,8 +901,9 @@
                 macroWarningCount++;
             }
             isMacroLocked = true;
-            identicalIntervalStreak = 0;
+            macroPatternStreak = 0;
             baseIntervalMs = null;
+            baseClickCoord = null;
             playTone(160, 'sawtooth', 0.25, 0.22);
 
             const modal = document.getElementById('macro-captcha-modal');
@@ -949,91 +941,162 @@
 
             if (modal) {
                 modal.classList.remove('hidden');
-                setTimeout(() => input1 && input1.focus(), 50);
+                setTimeout(() => {
+                    if (input1) input1.focus();
+                }, 50);
             }
         }
 
         function verifyHumanClick(e) {
+            const now = Date.now();
+
             if (isMacroLocked) {
                 openMacroCaptchaModal(false);
                 return false;
             }
-            // 1. 비신뢰 이벤트 및 마우스 클릭 후 Enter/Space 꾹 누르기 꼼수(e.detail === 0, 좌표 0,0) 즉시 차단
-            if (!e || e.isTrusted === false || e.detail === 0 || (e.clientX === 0 && e.clientY === 0)) {
+
+            // 키보드 Enter / Space 활성화 및 (0, 0) 좌표 매크로 차단
+            if (!e.isTrusted || e.detail === 0 || (e.clientX === 0 && e.clientY === 0)) {
                 openMacroCaptchaModal(true);
                 return false;
             }
 
-            // 2. 초고속 비인간 매크로(초당 20회 초과)만 차단 (사람 손 마우스 떨기 12~18 CPS는 정상 허용)
-            const now = performance.now();
-            recentClickTimestamps.push(now);
-            recentClickTimestamps = recentClickTimestamps.filter((t) => now - t <= 1000);
-            if (recentClickTimestamps.length > MAX_HUMAN_CPS) {
-                openMacroCaptchaModal(true);
-                return false;
-            }
-
-            // 3. 단 1픽셀도 안 움직이고(stationary) 기계적으로 동일한 ms 간격으로 누르는 오토클리커만 정밀 탐지
-            const curX = Math.round(e.clientX);
-            const curY = Math.round(e.clientY);
-            const isSamePixel = lastClickCoord && lastClickCoord.x === curX && lastClickCoord.y === curY;
-            if (isSamePixel) {
-                stationaryClickStreak++;
-            } else {
-                stationaryClickStreak = 0;
-            }
-            lastClickCoord = { x: curX, y: curY };
+            const cx = Math.round(e.clientX || 0);
+            const cy = Math.round(e.clientY || 0);
 
             if (lastValidClickTime > 0) {
                 const interval = now - lastValidClickTime;
 
-                if (interval > 3000) {
+                // 2.5초 이상 쉬면 연속 패턴 초기화
+                if (interval > 2500) {
+                    macroPatternStreak = 0;
                     baseIntervalMs = null;
-                    identicalIntervalStreak = 0;
-                    teleportClickStreak = 0;
-                    stationaryClickStreak = 0;
+                    baseClickCoord = null;
                 } else {
-                    if (baseIntervalMs === null) {
-                        baseIntervalMs = interval;
-                        identicalIntervalStreak = 1;
-                    } else if (Math.abs(interval - baseIntervalMs) <= IDENTICAL_INTERVAL_TOLERANCE_MS) {
-                        identicalIntervalStreak++;
+                    const isWithinCoordBox =
+                        baseClickCoord !== null &&
+                        Math.abs(cx - baseClickCoord.x) <= COORD_BOX_TOLERANCE_PX &&
+                        Math.abs(cy - baseClickCoord.y) <= COORD_BOX_TOLERANCE_PX;
+
+                    const isWithinSpeedBox =
+                        baseIntervalMs !== null &&
+                        Math.abs(interval - baseIntervalMs) <= IDENTICAL_INTERVAL_TOLERANCE_MS;
+
+                    if (isWithinCoordBox && isWithinSpeedBox) {
+                        macroPatternStreak++;
                     } else {
+                        // 기준 좌표(X ±10, Y ±10)나 기준 속도(±10ms)를 벗어나면 새 기준으로 재설정
+                        macroPatternStreak = 1;
+                        baseClickCoord = { x: cx, y: cy };
                         baseIntervalMs = interval;
-                        identicalIntervalStreak = 1;
                     }
 
-                    if (pointerMoveCountSinceLastClick === 0 && isSamePixel) {
-                        teleportClickStreak++;
-                    } else {
-                        teleportClickStreak = 0;
-                    }
-                    pointerMoveCountSinceLastClick = 0;
-
-                    if (
-                        (identicalIntervalStreak >= IDENTICAL_INTERVAL_LIMIT && stationaryClickStreak >= 10) ||
-                        teleportClickStreak >= 45
-                    ) {
-                        teleportClickStreak = 0;
-                        stationaryClickStreak = 0;
+                    if (macroPatternStreak >= MACRO_STREAK_LIMIT) {
                         openMacroCaptchaModal(true);
                         return false;
                     }
                 }
+            } else {
+                baseClickCoord = { x: cx, y: cy };
             }
 
             lastValidClickTime = now;
             return true;
         }
 
-        // --- 3. Web Audio API Sound Effects ---
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
+        // --- 3. Pure JS SHA-256 Fallback ---
+        async function hashPassword(rawPassword) {
+            const text = `clickland_salt_v1_${rawPassword}`;
+            if (window.crypto && window.crypto.subtle) {
+                try {
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(text);
+                    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                } catch (e) {}
+            }
+            return sha256Fallback(text);
+        }
 
-        function playTone(freq, type = 'sine', duration = 0.08, volume = 0.15) {
+        function sha256Fallback(ascii) {
+            function rightRotate(value, amount) {
+                return (value >>> amount) | (value << (32 - amount));
+            }
+            const mathPow = Math.pow;
+            const maxWord = mathPow(2, 32);
+            let result = '';
+            const words = [];
+            const asciiBitLength = ascii.length * 8;
+            const hash = [];
+            const k = [];
+            let primeCounter = 0;
+            const isComposite = {};
+
+            for (let candidate = 2; primeCounter < 64; candidate++) {
+                if (!isComposite[candidate]) {
+                    for (let i = 0; i < 313; i += candidate) {
+                        isComposite[i] = candidate;
+                    }
+                    hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+                    k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+                }
+            }
+
+            ascii += '\x80';
+            while ((ascii.length % 64) - 56) ascii += '\x00';
+            for (let i = 0; i < ascii.length; i++) {
+                const j = ascii.charCodeAt(i);
+                words[i >> 2] |= j << (((3 - i) % 4) * 8);
+            }
+            words[words.length] = (asciiBitLength / maxWord) | 0;
+            words[words.length] = asciiBitLength;
+
+            for (let j = 0; j < words.length;) {
+                const w = words.slice(j, (j += 16));
+                const oldHash = hash.slice(0);
+                for (let i = 0; i < 64; i++) {
+                    const w15 = w[i - 15], w2 = w[i - 2];
+                    const a = hash[0], e = hash[4];
+                    const temp1 = hash[7]
+                        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+                        + ((e & hash[5]) ^ ((~e) & hash[6]))
+                        + k[i]
+                        + (w[i] = (i < 16) ? w[i] : (
+                            w[i - 16]
+                            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+                            + w[i - 7]
+                            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+                        ) | 0);
+                    const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+                        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+
+                    hash.unshift((temp1 + temp2) | 0);
+                    hash.pop();
+                    hash[4] = (hash[4] + temp1) | 0;
+                }
+                for (let i = 0; i < 8; i++) {
+                    hash[i] = (hash[i] + oldHash[i]) | 0;
+                }
+            }
+
+            for (let i = 0; i < 8; i++) {
+                for (let j = 3; j + 1; j--) {
+                    const b = (hash[i] >> (j * 8)) & 255;
+                    result += ((b < 16) ? 0 : '') + b.toString(16);
+                }
+            }
+            return result;
+        }
+
+        // --- 4. Web Audio API Sound Effects & Click Sound Themes ---
+        let audioCtx = null;
+        function playTone(freq, type = 'sine', duration = 0.08, volume = 0.14) {
             if (!soundEnabled) return;
             try {
-                if (!audioCtx) audioCtx = new AudioCtx();
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
                 if (audioCtx.state === 'suspended') audioCtx.resume();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -1048,30 +1111,32 @@
             } catch (e) {}
         }
 
-        function playClickSound(progressRatio, soundOverride = null) {
-            const mode = soundOverride || playerProfile.equippedSound || 'sound_default';
-            const ratio = Math.min(progressRatio, 1);
+        function playClickSoundByTheme(themeId, progressRatio = 0.5, isCrit = false) {
+            if (!soundEnabled) return;
+            const ratio = Math.min(Math.max(progressRatio, 0), 1);
 
-            if (mode === 'sound_coin') {
-                const base = 780 + ratio * 260;
-                playTone(base, 'square', 0.05, 0.11);
-                setTimeout(() => playTone(base * 1.25, 'square', 0.08, 0.11), 35);
-            } else if (mode === 'sound_piano') {
+            if (themeId === 'sound_coin') {
+                playTone(987.77 + ratio * 180, 'square', 0.055, 0.09);
+                setTimeout(() => playTone(1318.51 + ratio * 220, 'square', 0.11, 0.09), 42);
+            } else if (themeId === 'sound_piano') {
                 const scale = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
                 const note = scale[Math.min(scale.length - 1, Math.floor(ratio * scale.length))];
-                playTone(note, 'sine', 0.14, 0.18);
-            } else if (mode === 'sound_laser') {
-                if (!soundEnabled) return;
+                playTone(note, 'sine', 0.18, 0.16);
+                if (isCrit) {
+                    setTimeout(() => playTone(note * 1.5, 'sine', 0.2, 0.14), 50);
+                }
+            } else if (themeId === 'sound_laser') {
                 try {
-                    if (!audioCtx) audioCtx = new AudioCtx();
+                    if (!audioCtx) {
+                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
                     if (audioCtx.state === 'suspended') audioCtx.resume();
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.type = 'sawtooth';
-                    const startFreq = 620 + ratio * 380;
-                    osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(160, audioCtx.currentTime + 0.09);
-                    gain.gain.setValueAtTime(0.13, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(920 + ratio * 380, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(210, audioCtx.currentTime + 0.09);
+                    gain.gain.setValueAtTime(0.11, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.09);
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
@@ -1079,9 +1144,16 @@
                     osc.stop(audioCtx.currentTime + 0.09);
                 } catch (e) {}
             } else {
-                const pitch = 320 + ratio * 420;
-                playTone(pitch, 'triangle', 0.07, 0.14);
+                const baseFreq = 320 + ratio * 420;
+                playTone(baseFreq, 'triangle', 0.06, 0.12);
+                if (isCrit) {
+                    setTimeout(() => playTone(baseFreq * 1.4, 'sine', 0.09, 0.14), 35);
+                }
             }
+        }
+
+        function playClickSound(progressRatio, isCrit = false) {
+            playClickSoundByTheme(playerProfile.equippedSound || 'sound_default', progressRatio, isCrit);
         }
 
         function playConquerFanfare() {
@@ -1091,8 +1163,8 @@
             setTimeout(() => playTone(1046.5, 'triangle', 0.28, 0.22), 270);
         }
 
-        // --- 4. 5m × 5m Grid Math & Landmark / Siege Pricing ---
-        const LAT_STEP = 0.000045; // 약 5.00m 위도 간격 (기존 Firebase 좌표와 100% 일치)
+        // --- 5. Grid Math & Landmark Pricing ---
+        const LAT_STEP = 0.000045;
 
         function getLngStep(lat) {
             const cosLat = Math.max(0.15, Math.cos((lat * Math.PI) / 180));
@@ -1151,13 +1223,20 @@
             const landmark = getLandmarkInfo(cell.centerLat, cell.centerLng);
             const baseClicks = landmark ? landmark.baseClicks : 50;
             const existing = territories[cell.id];
-            const conquerCount = existing && typeof existing.conquerCount === 'number' ? existing.conquerCount : (existing ? 1 : 0);
-            const siegeBonus = conquerCount * SIEGE_INCREMENT_CLICKS;
-            const totalRequired = baseClicks + siegeBonus;
-            return { baseClicks, conquerCount, siegeBonus, totalRequired, landmark };
+            const conquerCount = existing ? (existing.conquerCount || 1) : 0;
+            const required = baseClicks + conquerCount * SIEGE_INCREMENT_CLICKS;
+            return { required, baseClicks, conquerCount, landmark };
         }
 
-        // --- 5. Map Initialization & Viewport Rendering ---
+        function escapeHTML(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // --- 6. Map Initialization & Tile Layers ---
         function createBaseTileLayer(satellite) {
             if (satellite) {
                 return L.tileLayer(
@@ -1226,6 +1305,7 @@
             }, 60);
         }
 
+        // --- 7. Connected Component Clustering for Clean Labels ---
         function buildTerritoryClusters(visibleOwnedEntries) {
             const cellMap = new Map();
             visibleOwnedEntries.forEach(([id, data]) => {
@@ -1304,6 +1384,7 @@
             return anchorLookup;
         }
 
+        // --- 8. Render Grid & Territories ---
         function renderViewportGridAndTerritories() {
             if (!map) return;
             gridLayerGroup.clearLayers();
@@ -1313,7 +1394,6 @@
             const bounds = map.getBounds();
             const padBounds = bounds.pad(0.15);
 
-            // 1) 점령된 영토 렌더링 (줌 17 미만 축소 시 동그란 점, 줌 17 이상 시 5m×5m 사각형)
             const visibleOwned = [];
             Object.entries(territories).forEach(([id, data]) => {
                 if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') return;
@@ -1328,7 +1408,6 @@
             visibleOwned.forEach(([id, data]) => {
                 if (zoom >= GRID_MIN_ZOOM) {
                     const cell = latLngToGridCell(data.lat, data.lng);
-                    cell.id = id;
                     const isSelected = selectedCell && selectedCell.id === id;
                     const rect = L.rectangle(
                         [
@@ -1346,8 +1425,8 @@
                     const cluster = anchorLookup.get(id);
                     if (showLabels && cluster) {
                         const labelText = cluster.count > 1
-                            ? `${escapeHtml(cluster.owner)}의 땅! (${cluster.count}칸)`
-                            : `${escapeHtml(cluster.owner)}의 땅!`;
+                            ? `${escapeHTML(cluster.owner)}의 땅! (${cluster.count}칸)`
+                            : `${escapeHTML(cluster.owner)}의 땅!`;
                         rect.bindTooltip(labelText, {
                             permanent: true,
                             direction: 'top',
@@ -1362,7 +1441,7 @@
                     });
                 } else {
                     const marker = L.circleMarker([data.lat, data.lng], {
-                        radius: 6,
+                        radius: 7,
                         color: '#ffffff',
                         weight: 1.5,
                         fillColor: data.color || '#ef4444',
@@ -1370,12 +1449,11 @@
                     }).addTo(ownedLayerGroup);
 
                     marker.on('click', () => {
-                        map.setView([data.lat, data.lng], 19);
+                        map.setView([data.lat, data.lng], 22);
                     });
                 }
             });
 
-            // 2) 줌 17 이상일 때만 5m × 5m 빈 격자 렌더링
             if (zoom < GRID_MIN_ZOOM) return;
 
             const south = bounds.getSouth();
@@ -1443,521 +1521,761 @@
             }
         }
 
-        // --- 6. Account Auth ---
-        function sha256Fallback(ascii) {
-            function rightRotate(value, amount) {
-                return (value >>> amount) | (value << (32 - amount));
+        // --- 9. Conquest & Point System ---
+        function handleCellInteraction(cell) {
+            if (!playerProfile.nickname) {
+                document.getElementById('nickname-modal').classList.remove('hidden');
+                return;
             }
-            const mathPow = Math.pow;
-            const maxWord = mathPow(2, 32);
-            let result = '';
-            const words = [];
-            const asciiBitLength = ascii.length * 8;
-            const hash = [];
-            const k = [];
-            let primeCounter = 0;
-            const isComposite = {};
-
-            for (let candidate = 2; primeCounter < 64; candidate++) {
-                if (!isComposite[candidate]) {
-                    for (let i = 0; i < 313; i += candidate) {
-                        isComposite[i] = candidate;
-                    }
-                    hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
-                    k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-                }
-            }
-
-            ascii += '\x80';
-            while ((ascii.length % 64) - 56) ascii += '\x00';
-            for (let i = 0; i < ascii.length; i++) {
-                const j = ascii.charCodeAt(i);
-                words[i >> 2] |= j << (((3 - i) % 4) * 8);
-            }
-            words[words.length] = (asciiBitLength / maxWord) | 0;
-            words[words.length] = asciiBitLength;
-
-            for (let j = 0; j < words.length;) {
-                const w = words.slice(j, (j += 16));
-                const oldHash = hash.slice(0);
-                for (let i = 0; i < 64; i++) {
-                    const w15 = w[i - 15], w2 = w[i - 2];
-                    const a = hash[0], e = hash[4];
-                    const temp1 = hash[7]
-                        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
-                        + ((e & hash[5]) ^ ((~e) & hash[6]))
-                        + k[i]
-                        + (w[i] = (i < 16) ? w[i] : (
-                            w[i - 16]
-                            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-                            + w[i - 7]
-                            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
-                        ) | 0);
-                    const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
-                        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
-
-                    hash.unshift((temp1 + temp2) | 0);
-                    hash.pop();
-                    hash[4] = (hash[4] + temp1) | 0;
-                }
-                for (let i = 0; i < 8; i++) {
-                    hash[i] = (hash[i] + oldHash[i]) | 0;
-                }
-            }
-
-            for (let i = 0; i < 8; i++) {
-                for (let j = 3; j + 1; j--) {
-                    const b = (hash[i] >> (j * 8)) & 255;
-                    result += ((b < 16) ? 0 : '') + b.toString(16);
-                }
-            }
-            return result;
+            selectedCell = cell;
+            openConquestPanel(cell);
+            scheduleMapRender();
         }
 
-        async function hashPassword(rawPassword) {
-            const text = 'clickland_salt_v1_' + rawPassword;
-            if (window.crypto && window.crypto.subtle) {
+        function openConquestPanel(cell) {
+            const panel = document.getElementById('conquest-panel');
+            panel.classList.remove('hidden');
+
+            const existing = territories[cell.id];
+            const { required, conquerCount, landmark } = getRequiredClicksForCell(cell);
+            const currentClicks = localClickProgress[cell.id] || 0;
+
+            const badgeEl = document.getElementById('panel-badge');
+            const landmarkBadgeEl = document.getElementById('panel-landmark-badge');
+            const titleEl = document.getElementById('panel-title');
+            const coordsEl = document.getElementById('panel-coords');
+            const siegeInfoEl = document.getElementById('panel-siege-info');
+            const btnAttack = document.getElementById('btn-click-conquer');
+
+            if (landmark) {
+                landmarkBadgeEl.textContent = `🏛️ ${landmark.name}`;
+                landmarkBadgeEl.classList.remove('hidden');
+            } else {
+                landmarkBadgeEl.classList.add('hidden');
+            }
+
+            coordsEl.textContent = `위도 ${cell.centerLat.toFixed(6)}, 경도 ${cell.centerLng.toFixed(6)}`;
+            siegeInfoEl.textContent = `누적 공성 할증: ${conquerCount}회 (+${conquerCount * SIEGE_INCREMENT_CLICKS}클릭)`;
+
+            if (!existing) {
+                badgeEl.textContent = '🏳️ 주인 없는 빈 땅';
+                badgeEl.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40';
+                titleEl.textContent = '신규 영토 개척하기';
+                btnAttack.textContent = '👆 광클해서 점령하기!';
+                btnAttack.disabled = false;
+                btnAttack.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else if (existing.owner === playerProfile.nickname) {
+                badgeEl.textContent = '👑 내 영토';
+                badgeEl.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40';
+                titleEl.textContent = `${existing.owner}의 영토 (방어 완료)`;
+                btnAttack.textContent = '✅ 이미 내가 점령한 땅입니다';
+                btnAttack.disabled = true;
+                btnAttack.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                badgeEl.textContent = `⚔️ ${existing.owner}의 영토`;
+                badgeEl.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/40';
+                titleEl.textContent = `${existing.owner}의 땅 빼앗기!`;
+                btnAttack.textContent = '⚔️ 광클해서 땅 빼앗기!';
+                btnAttack.disabled = false;
+                btnAttack.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            updateConquestProgressUI(currentClicks, required);
+        }
+
+        function updateConquestProgressUI(currentClicks, required) {
+            const pct = Math.min(100, Math.round((currentClicks / required) * 100));
+            document.getElementById('panel-progress-text').textContent = `${currentClicks} / ${required} 클릭 (${pct}%)`;
+            document.getElementById('panel-progress-bar').style.width = `${pct}%`;
+        }
+
+        function spawnFloatingClickEffect(clientX, clientY, text, isCrit = false) {
+            const el = document.createElement('div');
+            el.className = 'floating-click-text';
+            el.textContent = text;
+            if (isCrit) {
+                el.style.color = '#38bdf8';
+                el.style.fontSize = '24px';
+            }
+            const x = clientX || window.innerWidth / 2;
+            const y = clientY || window.innerHeight - 130;
+            el.style.left = `${x + (Math.random() * 40 - 20)}px`;
+            el.style.top = `${y - 10}px`;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 660);
+        }
+
+        async function executeConquerClaim(cell) {
+            lastConquerCompletedAt = Date.now();
+
+            const cellRef = ref(db, `territories/${cell.id}`);
+            const playerPointsRef = ref(db, `players/${playerProfile.nickname}/points`);
+            try {
+                await runTransaction(cellRef, (currentData) => {
+                    const prevCount = currentData ? (currentData.conquerCount || 1) : 0;
+                    return {
+                        owner: playerProfile.nickname,
+                        color: playerProfile.color,
+                        lat: cell.centerLat,
+                        lng: cell.centerLng,
+                        conquerCount: prevCount + 1,
+                        updatedAt: Date.now()
+                    };
+                });
+
+                await runTransaction(playerPointsRef, (currPoints) => {
+                    return (Number(currPoints) || 0) + 1;
+                });
+
+                localClickProgress[cell.id] = 0;
+                playConquerFanfare();
+                showToast(`🎉 [${cell.id}] 구역을 점령했습니다! (+1P 획득)`);
+            } catch (err) {
+                console.error('Claim transaction failed:', err);
+                showToast('서버 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
+            }
+        }
+
+        // --- 10. Firebase Realtime Sync, Player Profile & Leaderboard ---
+        let initialForceReloadTimestamp = null;
+        let isChatCollapsed = false;
+        let isLeaderboardCollapsed = false;
+        let playerSyncUnsubscribe = null;
+
+        function isCurrentUserAdmin() {
+            return playerProfile.nickname === ADMIN_NICKNAME && Boolean(playerProfile.passHash);
+        }
+
+        function updatePointsHUD() {
+            const pts = Number(playerProfile.points) || 0;
+            const hudPts = document.getElementById('hud-my-points');
+            const shopPts = document.getElementById('shop-balance-text');
+            if (hudPts) hudPts.textContent = pts.toLocaleString();
+            if (shopPts) shopPts.textContent = pts.toLocaleString();
+        }
+
+        function subscribeToPlayerProfile(nickname) {
+            if (playerSyncUnsubscribe) {
+                playerSyncUnsubscribe();
+                playerSyncUnsubscribe = null;
+            }
+            if (!nickname) return;
+
+            const pRef = ref(db, `players/${nickname}`);
+            playerSyncUnsubscribe = onValue(pRef, (snap) => {
+                const val = snap.val();
+                if (!val) return;
+                playerProfile.points = Number(val.points) || 0;
+                playerProfile.unlockedItems = Object.assign(
+                    { cursor_default: true, sound_default: true },
+                    val.unlockedItems || {}
+                );
+                playerProfile.equippedCursor = val.equippedCursor || 'cursor_default';
+                playerProfile.equippedSound = val.equippedSound || 'sound_default';
+                playerProfile.critTier = Number(val.critTier) || 0;
+
+                updatePointsHUD();
+                applyEquippedCursorStyle();
+                if (!document.getElementById('shop-modal').classList.contains('hidden')) {
+                    renderShopItems();
+                }
+            });
+        }
+
+        function triggerTerritoryStolenPush(thiefNickname, cellId) {
+            if (!stealAlertEnabled) return;
+            const alertText = `${thiefNickname}님이 땅을 빼앗았습니다!`;
+            showLiveTicker(`🚨 ${alertText}`);
+            playTone(220, 'sawtooth', 0.22, 0.2);
+
+            if ('Notification' in window && Notification.permission === 'granted') {
                 try {
-                    const encoder = new TextEncoder();
-                    const data = encoder.encode(text);
-                    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+                    new Notification('클릭땅 영토 침공 경보!', {
+                        body: alertText,
+                        tag: `steal_${cellId}`
+                    });
                 } catch (e) {}
             }
-            return sha256Fallback(unescape(encodeURIComponent(text)));
         }
 
-        function setAuthMode(mode) {
-            authMode = mode;
-            const tabLogin = document.getElementById('tab-mode-login');
-            const tabSignup = document.getElementById('tab-mode-signup');
-            const signupColorSec = document.getElementById('signup-color-section');
-            const subtitle = document.getElementById('auth-subtitle');
-            const submitBtn = document.getElementById('btn-auth-submit');
-            const errBox = document.getElementById('auth-error-box');
+        function setupChatAndAdminSync() {
+            const chatQuery = query(ref(db, 'chat'), limitToLast(40));
+            const messagesEl = document.getElementById('chat-messages');
 
-            errBox.classList.add('hidden');
+            onValue(chatQuery, (snapshot) => {
+                const data = snapshot.val() || {};
+                const list = Object.values(data).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
-            if (mode === 'login') {
-                tabLogin.className = 'py-2 rounded-xl font-extrabold text-xs bg-white text-amber-600 shadow-sm transition cursor-pointer';
-                tabSignup.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer';
-                signupColorSec.classList.add('hidden');
-                subtitle.textContent = '기존 닉네임과 비밀번호로 로그인하세요!';
-                submitBtn.textContent = '로그인하고 입장하기';
-            } else {
-                tabSignup.className = 'py-2 rounded-xl font-extrabold text-xs bg-white text-amber-600 shadow-sm transition cursor-pointer';
-                tabLogin.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer';
-                signupColorSec.classList.remove('hidden');
-                subtitle.textContent = '새 계정을 만들고 무작위 영토 색상을 배정받으세요!';
-                submitBtn.textContent = '회원가입하고 시작하기';
-                updateRandomColorPreview(pickRandomColor());
-            }
-        }
-
-        function updateRandomColorPreview(hexColor) {
-            selectedColor = hexColor;
-            document.getElementById('random-color-preview').style.backgroundColor = hexColor;
-            document.getElementById('random-color-hex').textContent = hexColor.toUpperCase();
-        }
-
-        function showAuthError(msg) {
-            const errBox = document.getElementById('auth-error-box');
-            errBox.textContent = msg;
-            errBox.classList.remove('hidden');
-        }
-
-        function setupAuthModal() {
-            const modal = document.getElementById('nickname-modal');
-            const form = document.getElementById('nickname-form');
-            const inputNick = document.getElementById('input-nickname');
-            const inputPass = document.getElementById('input-password');
-
-            document.getElementById('tab-mode-login').addEventListener('click', () => setAuthMode('login'));
-            document.getElementById('tab-mode-signup').addEventListener('click', () => setAuthMode('signup'));
-            document.getElementById('btn-reroll-color').addEventListener('click', () => {
-                updateRandomColorPreview(pickRandomColor());
-            });
-
-            if (playerProfile.nickname && playerProfile.passHash) {
-                inputNick.value = playerProfile.nickname;
-                modal.classList.add('hidden');
-                updateHudProfile();
-                recordClientDeviceAndIp(playerProfile.nickname);
-            } else {
-                setAuthMode('login');
-                modal.classList.remove('hidden');
-            }
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const nick = inputNick.value.trim();
-                const pass = inputPass.value.trim();
-
-                if (!nick) {
-                    showAuthError('닉네임을 입력해 주세요.');
-                    return;
-                }
-                if (/[.#$\[\]\/]/.test(nick)) {
-                    showAuthError('닉네임에 특수문자(. # $ [ ] /)는 사용할 수 없습니다.');
-                    return;
-                }
-                if (pass.length < 4) {
-                    showAuthError('비밀번호는 최소 4자리 이상 입력해 주세요.');
+                if (list.length === 0) {
+                    messagesEl.innerHTML = `<div class="text-slate-400 text-[11px] text-center py-2">첫 채팅 메시지를 남겨보세요!</div>`;
                     return;
                 }
 
-                const submitBtn = document.getElementById('btn-auth-submit');
-                submitBtn.disabled = true;
-                submitBtn.textContent = '확인 중...';
-
-                try {
-                    const passHash = await hashPassword(pass);
-                    const playerRef = ref(db, `players/${nick}`);
-                    const snap = await get(playerRef);
-
-                    if (authMode === 'signup') {
-                        if (snap.exists()) {
-                            showAuthError('이미 사용 중인 닉네임입니다! 다른 닉네임을 입력하거나 로그인해 주세요.');
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = '회원가입하고 시작하기';
-                            return;
-                        }
-
-                        const assignedColor = selectedColor || pickRandomColor();
-                        const deviceInfo = await getReadableDeviceInfo();
-                        const ip = await fetchClientPublicIp();
-                        await set(playerRef, {
-                            nickname: nick,
-                            passHash: passHash,
-                            color: assignedColor,
-                            deviceInfo: deviceInfo,
-                            deviceId: deviceInfo,
-                            lastIp: ip,
-                            createdAt: Date.now(),
-                            lastSeenAt: Date.now()
-                        });
-
-                        playerProfile = { nickname: nick, color: assignedColor, passHash };
-                        localStorage.setItem('wc_nickname', nick);
-                        localStorage.setItem('wc_color', assignedColor);
-                        localStorage.setItem('wc_pass_hash', passHash);
-
-                        updateHudProfile();
-                        updateLeaderboardAndStats();
-                        modal.classList.add('hidden');
-                        showToast(`🎉 회원가입 완료! 내 영토 색상은 ${assignedColor.toUpperCase()} 입니다.`);
-                    } else {
-                        if (!snap.exists()) {
-                            showAuthError('존재하지 않는 닉네임입니다. 상단 [회원가입] 탭에서 계정을 먼저 만들어 주세요!');
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = '로그인하고 입장하기';
-                            return;
-                        }
-
-                        const accountData = snap.val();
-                        if (accountData.passHash && accountData.passHash !== passHash) {
-                            showAuthError('비밀번호가 일치하지 않습니다! 본인 계정 비밀번호를 확인해 주세요.');
-                            submitBtn.disabled = false;
-                            submitBtn.textContent = '로그인하고 입장하기';
-                            return;
-                        }
-
-                        if (!accountData.passHash) {
-                            await update(playerRef, { passHash });
-                        }
-
-                        const accountColor = accountData.color || pickRandomColor();
-                        playerProfile = {
-                            nickname: nick,
-                            color: accountColor,
-                            passHash,
-                            points: typeof accountData.points === 'number' ? accountData.points : 0,
-                            unlockedItems: Object.assign({ cursor_default: true, sound_default: true }, accountData.unlockedItems || {}),
-                            equippedCursor: accountData.equippedCursor || 'cursor_default',
-                            equippedSound: accountData.equippedSound || 'sound_default',
-                            critTier: typeof accountData.critTier === 'number' ? accountData.critTier : 0
-                        };
-                        localStorage.setItem('wc_nickname', nick);
-                        localStorage.setItem('wc_color', accountColor);
-                        localStorage.setItem('wc_pass_hash', passHash);
-
-                        recordClientDeviceAndIp(nick);
-                        applyEquippedCursorStyle();
-                        updateHudProfile();
-                        updateLeaderboardAndStats();
-                        modal.classList.add('hidden');
-                        showToast(`👋 ${nick}님 환영합니다!`);
+                messagesEl.innerHTML = list.map((msg) => {
+                    if (msg.isSystem) {
+                        return `<div class="text-[11px] font-bold text-rose-300 bg-rose-500/15 border border-rose-400/30 px-2 py-1 rounded-lg text-center">${escapeHTML(msg.text)}</div>`;
                     }
-                } catch (err) {
-                    console.error('Auth error:', err);
-                    showAuthError('서버 인증 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = authMode === 'login' ? '로그인하고 입장하기' : '회원가입 후 게임 시작하기';
+                    const isAdmin = msg.sender === ADMIN_NICKNAME;
+                    const color = msg.color || '#fbbf24';
+                    return `
+                        <div class="leading-snug break-words">
+                            <span class="inline-block w-2 h-2 rounded-full mr-1 align-middle" style="background-color: ${color};"></span>
+                            ${isAdmin ? '<span class="text-[10px] font-black px-1 py-0.2 rounded bg-rose-500 text-white mr-1">👑관리자</span>' : ''}
+                            <strong class="${isAdmin ? 'text-rose-300' : 'text-amber-200'} font-extrabold">${escapeHTML(msg.sender)}:</strong>
+                            <span class="text-slate-100">${escapeHTML(msg.text)}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            });
+
+            const forceReloadRef = ref(db, 'system/forceReloadAt');
+            onValue(forceReloadRef, (snapshot) => {
+                const reloadTs = snapshot.val();
+                if (!reloadTs) return;
+
+                if (initialForceReloadTimestamp === null) {
+                    initialForceReloadTimestamp = reloadTs;
+                    return;
+                }
+
+                if (reloadTs > initialForceReloadTimestamp) {
+                    initialForceReloadTimestamp = reloadTs;
+                    window.location.reload();
                 }
             });
         }
 
-        function updateHudProfile() {
+        function setupFirebaseSync() {
+            const territoriesRef = ref(db, 'territories');
+            const badge = document.getElementById('server-status-badge');
+
+            onValue(
+                territoriesRef,
+                (snapshot) => {
+                    badge.textContent = '🟢 연결됨';
+                    badge.className = 'text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 whitespace-nowrap shrink-0';
+
+                    const newData = snapshot.val() || {};
+
+                    if (isInitialSnapshotLoaded) {
+                        for (const [cellId, val] of Object.entries(newData)) {
+                            const prev = territories[cellId];
+                            if (!prev || prev.owner !== val.owner) {
+                                if (
+                                    prev &&
+                                    prev.owner === playerProfile.nickname &&
+                                    val.owner &&
+                                    val.owner !== playerProfile.nickname
+                                ) {
+                                    triggerTerritoryStolenPush(val.owner, cellId);
+                                } else if (val.owner !== playerProfile.nickname) {
+                                    const landmark = getLandmarkInfo(val.lat, val.lng);
+                                    const spotText = landmark ? landmark.name : `${val.lat.toFixed(4)}, ${val.lng.toFixed(4)}`;
+                                    showLiveTicker(`🚩 ${val.owner}님이 새로운 [${spotText}] 구역을 점령했습니다!`);
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    territories = newData;
+                    isInitialSnapshotLoaded = true;
+
+                    updateHUDAndLeaderboard();
+                    scheduleMapRender();
+
+                    if (selectedCell) {
+                        openConquestPanel(selectedCell);
+                    }
+                },
+                (error) => {
+                    console.error('Firebase sync error:', error);
+                    badge.textContent = '🔴 오류';
+                    badge.className = 'text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30 whitespace-nowrap shrink-0';
+                }
+            );
+        }
+
+        function updateHUDAndLeaderboard() {
+            const entries = Object.values(territories);
+            document.getElementById('hud-total-claimed').textContent = entries.length.toLocaleString();
+
+            const countsByOwner = {};
+            const colorByOwner = {};
+
+            entries.forEach((item) => {
+                if (!item || !item.owner) return;
+                countsByOwner[item.owner] = (countsByOwner[item.owner] || 0) + 1;
+                colorByOwner[item.owner] = item.color || '#ef4444';
+            });
+
+            const myCount = playerProfile.nickname ? (countsByOwner[playerProfile.nickname] || 0) : 0;
+            document.getElementById('hud-my-count').textContent = myCount.toLocaleString();
+
+            const sorted = Object.entries(countsByOwner)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            const listEl = document.getElementById('leaderboard-list');
+            if (sorted.length === 0) {
+                listEl.innerHTML = `<div class="text-slate-400 text-center py-2">아직 점령된 땅이 없습니다!</div>`;
+                return;
+            }
+
+            const medals = ['🥇', '🥈', '🥉', '4위', '5위'];
+            listEl.innerHTML = sorted
+                .map(([owner, count], idx) => {
+                    const isMe = owner === playerProfile.nickname;
+                    const color = colorByOwner[owner] || '#ef4444';
+                    return `
+                        <div class="flex items-center justify-between px-2.5 py-1.5 rounded-xl ${isMe ? 'bg-amber-500/20 border border-amber-400/50' : 'bg-slate-800/80'}">
+                            <div class="flex items-center gap-1.5 truncate">
+                                <span class="font-extrabold text-amber-300 w-5 shrink-0">${medals[idx]}</span>
+                                <span class="w-2.5 h-2.5 rounded-full shrink-0 border border-white/70" style="background-color: ${color};"></span>
+                                <span class="font-bold truncate ${isMe ? 'text-amber-200' : 'text-white'}">${escapeHTML(owner)}</span>
+                            </div>
+                            <span class="font-extrabold text-emerald-400 shrink-0 ml-2">${count}칸</span>
+                        </div>
+                    `;
+                })
+                .join('');
+        }
+
+        // --- 11. Point Shop Rendering & Purchase Logic ---
+        function renderShopItems() {
+            const container = document.getElementById('shop-items-list');
+            if (!container) return;
+
+            if (activeShopTab === 'cursor') {
+                container.innerHTML = CURSOR_SHOP_ITEMS.map((item) => {
+                    const unlocked = item.price === 0 || Boolean(playerProfile.unlockedItems[item.id]);
+                    const equipped = playerProfile.equippedCursor === item.id;
+                    let btnHtml = '';
+
+                    if (equipped) {
+                        btnHtml = `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-extrabold text-xs shrink-0">✅ 장착됨</span>`;
+                    } else if (unlocked) {
+                        btnHtml = `<button type="button" data-shop-action="equip_cursor" data-item-id="${item.id}" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs transition cursor-pointer shrink-0">장착하기</button>`;
+                    } else {
+                        btnHtml = `<button type="button" data-shop-action="buy_cursor" data-item-id="${item.id}" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shrink-0">💰 ${item.price}P 구매</button>`;
+                    }
+
+                    return `
+                        <div class="bg-slate-800/90 p-3 rounded-2xl border ${equipped ? 'border-emerald-400/60' : 'border-slate-700'} flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">
+                                    ${item.previewIcon}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-extrabold text-white truncate">${escapeHTML(item.name)}</div>
+                                    <div class="text-[11px] text-slate-400 leading-snug mt-0.5">${escapeHTML(item.desc)}</div>
+                                </div>
+                            </div>
+                            ${btnHtml}
+                        </div>
+                    `;
+                }).join('');
+            } else if (activeShopTab === 'sound') {
+                container.innerHTML = SOUND_SHOP_ITEMS.map((item) => {
+                    const unlocked = item.price === 0 || Boolean(playerProfile.unlockedItems[item.id]);
+                    const equipped = playerProfile.equippedSound === item.id;
+                    let btnHtml = '';
+
+                    if (equipped) {
+                        btnHtml = `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-extrabold text-xs shrink-0">✅ 사용 중</span>`;
+                    } else if (unlocked) {
+                        btnHtml = `<button type="button" data-shop-action="equip_sound" data-item-id="${item.id}" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs transition cursor-pointer shrink-0">적용하기</button>`;
+                    } else {
+                        btnHtml = `<button type="button" data-shop-action="buy_sound" data-item-id="${item.id}" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shrink-0">💰 ${item.price}P 구매</button>`;
+                    }
+
+                    return `
+                        <div class="bg-slate-800/90 p-3 rounded-2xl border ${equipped ? 'border-emerald-400/60' : 'border-slate-700'} flex items-center justify-between gap-2.5">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">
+                                    ${item.icon}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs font-extrabold text-white truncate">${escapeHTML(item.name)}</span>
+                                        <button type="button" data-shop-action="preview_sound" data-item-id="${item.id}" class="px-2 py-0.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-[10px] font-bold text-amber-300 cursor-pointer shrink-0">
+                                            🔊 미리듣기
+                                        </button>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 leading-snug mt-0.5">${escapeHTML(item.desc)}</div>
+                                </div>
+                            </div>
+                            ${btnHtml}
+                        </div>
+                    `;
+                }).join('');
+            } else if (activeShopTab === 'crit') {
+                container.innerHTML = CRIT_SHOP_ITEMS.map((item) => {
+                    const isOwnedOrHigher = playerProfile.critTier >= item.tier;
+                    const isCurrentTier = playerProfile.critTier === item.tier;
+                    let btnHtml = '';
+
+                    if (isCurrentTier) {
+                        btnHtml = `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-extrabold text-xs shrink-0">✅ 적용 중</span>`;
+                    } else if (isOwnedOrHigher) {
+                        btnHtml = `<span class="px-3 py-1.5 rounded-xl bg-slate-700 text-slate-300 font-bold text-xs shrink-0">상위 보유됨</span>`;
+                    } else {
+                        btnHtml = `<button type="button" data-shop-action="buy_crit" data-item-id="${item.id}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-extrabold text-xs transition cursor-pointer shrink-0">💰 ${item.price}P 구매</button>`;
+                    }
+
+                    return `
+                        <div class="bg-slate-800/90 p-3.5 rounded-2xl border ${isCurrentTier ? 'border-amber-400/70' : 'border-slate-700'} flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">
+                                    ${item.icon}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-extrabold text-amber-200">${escapeHTML(item.name)}</div>
+                                    <div class="text-[11px] text-slate-300 leading-snug mt-0.5">${escapeHTML(item.desc)}</div>
+                                </div>
+                            </div>
+                            ${btnHtml}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        async function handleShopAction(action, itemId) {
+            if (!playerProfile.nickname) return;
+            const playerRef = ref(db, `players/${playerProfile.nickname}`);
+
+            if (action === 'preview_sound') {
+                playClickSoundByTheme(itemId, 0.65, false);
+                return;
+            }
+
+            if (action === 'equip_cursor') {
+                await update(playerRef, { equippedCursor: itemId });
+                showToast('🖱️ 마우스 커서 모양을 변경했습니다!');
+                return;
+            }
+
+            if (action === 'equip_sound') {
+                await update(playerRef, { equippedSound: itemId });
+                playClickSoundByTheme(itemId, 0.7, false);
+                showToast('🔊 게이지 클릭 소리를 변경했습니다!');
+                return;
+            }
+
+            if (action === 'buy_cursor') {
+                const item = CURSOR_SHOP_ITEMS.find((i) => i.id === itemId);
+                if (!item) return;
+                if (playerProfile.points < item.price) {
+                    showToast(`❌ 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points}P)`);
+                    return;
+                }
+                await runTransaction(playerRef, (curr) => {
+                    if (!curr) return curr;
+                    const pts = Number(curr.points) || 0;
+                    if (pts < item.price) return;
+                    const unlocked = Object.assign({}, curr.unlockedItems || {});
+                    unlocked[item.id] = true;
+                    curr.points = pts - item.price;
+                    curr.unlockedItems = unlocked;
+                    curr.equippedCursor = item.id;
+                    return curr;
+                });
+                playConquerFanfare();
+                showToast(`🎉 [${item.name}] 구매 및 장착 완료!`);
+                return;
+            }
+
+            if (action === 'buy_sound') {
+                const item = SOUND_SHOP_ITEMS.find((i) => i.id === itemId);
+                if (!item) return;
+                if (playerProfile.points < item.price) {
+                    showToast(`❌ 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points}P)`);
+                    return;
+                }
+                await runTransaction(playerRef, (curr) => {
+                    if (!curr) return curr;
+                    const pts = Number(curr.points) || 0;
+                    if (pts < item.price) return;
+                    const unlocked = Object.assign({}, curr.unlockedItems || {});
+                    unlocked[item.id] = true;
+                    curr.points = pts - item.price;
+                    curr.unlockedItems = unlocked;
+                    curr.equippedSound = item.id;
+                    return curr;
+                });
+                playClickSoundByTheme(item.id, 0.8, false);
+                showToast(`🎉 [${item.name}] 구매 및 적용 완료!`);
+                return;
+            }
+
+            if (action === 'buy_crit') {
+                const item = CRIT_SHOP_ITEMS.find((i) => i.id === itemId);
+                if (!item) return;
+                if (playerProfile.points < item.price) {
+                    showToast(`❌ 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points}P)`);
+                    return;
+                }
+                await runTransaction(playerRef, (curr) => {
+                    if (!curr) return curr;
+                    const pts = Number(curr.points) || 0;
+                    if (pts < item.price) return;
+                    curr.points = pts - item.price;
+                    curr.critTier = Math.max(Number(curr.critTier) || 0, item.tier);
+                    return curr;
+                });
+                playConquerFanfare();
+                showToast(`⚡ [${item.name}] 구매 완료! 이제 클릭 시 2배 크리티컬이 발동합니다!`);
+            }
+        }
+
+        function setupShopModal() {
+            const modal = document.getElementById('shop-modal');
+            const tabCursor = document.getElementById('shop-tab-cursor');
+            const tabSound = document.getElementById('shop-tab-sound');
+            const tabCrit = document.getElementById('shop-tab-crit');
+
+            function switchShopTab(tab) {
+                activeShopTab = tab;
+                const activeCls = 'py-2 rounded-xl font-extrabold text-xs bg-fuchsia-600 text-white shadow transition cursor-pointer';
+                const inactiveCls = 'py-2 rounded-xl font-extrabold text-xs text-slate-400 hover:text-white transition cursor-pointer';
+                tabCursor.className = tab === 'cursor' ? activeCls : inactiveCls;
+                tabSound.className = tab === 'sound' ? activeCls : inactiveCls;
+                tabCrit.className = tab === 'crit' ? activeCls : inactiveCls;
+                renderShopItems();
+            }
+
+            document.getElementById('btn-open-shop').addEventListener('click', () => {
+                if (!playerProfile.nickname) {
+                    document.getElementById('nickname-modal').classList.remove('hidden');
+                    return;
+                }
+                updatePointsHUD();
+                switchShopTab(activeShopTab);
+                modal.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-shop-modal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+
+            tabCursor.addEventListener('click', () => switchShopTab('cursor'));
+            tabSound.addEventListener('click', () => switchShopTab('sound'));
+            tabCrit.addEventListener('click', () => switchShopTab('crit'));
+
+            document.getElementById('shop-items-list').addEventListener('click', async (e) => {
+                const btn = e.target.closest('[data-shop-action]');
+                if (!btn) return;
+                const action = btn.getAttribute('data-shop-action');
+                const itemId = btn.getAttribute('data-item-id');
+                await handleShopAction(action, itemId);
+            });
+        }
+
+        // --- 12. Toast, Ticker & Invite Helpers ---
+        let toastTimer = null;
+        function showToast(msg) {
+            showLiveTicker(msg);
+        }
+
+        function showLiveTicker(msg) {
+            const ticker = document.getElementById('live-ticker');
+            ticker.textContent = msg;
+            ticker.classList.remove('hidden');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                ticker.classList.add('hidden');
+            }, 3400);
+        }
+
+        function copyTextFallback(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try {
+                document.execCommand('copy');
+            } catch (e) {}
+            document.body.removeChild(ta);
+        }
+
+        async function shareOrInviteFriends() {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: '클릭땅 (ClickLand)',
+                        text: INVITE_MESSAGE_TEXT
+                    });
+                    return;
+                } catch (e) {}
+            }
+            copyTextFallback(INVITE_MESSAGE_TEXT);
+            showToast('📋 친구 초대 문구와 1·2·3차 서버 주소가 복사되었습니다!');
+        }
+
+        function updateStealAlertButtonUI() {
+            const btn = document.getElementById('btn-toggle-steal-alert');
+            if (!btn) return;
+            if (stealAlertEnabled) {
+                btn.textContent = 'ON';
+                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-emerald-500 text-slate-950 transition cursor-pointer shrink-0';
+            } else {
+                btn.textContent = 'OFF';
+                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-slate-700 text-slate-300 transition cursor-pointer shrink-0';
+            }
+        }
+
+        function updateProfileHUD() {
             const nick = playerProfile.nickname || '플레이어';
             document.getElementById('hud-nickname').textContent = nick;
             const avatar = document.getElementById('hud-avatar');
             avatar.textContent = nick.charAt(0).toUpperCase();
             avatar.style.backgroundColor = playerProfile.color;
 
-            const ptsEl = document.getElementById('hud-my-points');
-            if (ptsEl) ptsEl.textContent = (playerProfile.points || 0).toLocaleString();
-            const shopBalEl = document.getElementById('shop-balance-text');
-            if (shopBalEl) shopBalEl.textContent = (playerProfile.points || 0).toLocaleString();
-
             const adminBadge = document.getElementById('chat-admin-badge');
             const chatInput = document.getElementById('chat-input');
-            if (nick === ADMIN_NICKNAME) {
-                adminBadge.classList.remove('hidden');
-                chatInput.placeholder = '채팅 입력 (/whois, /deluser, /resetall)';
+            if (isCurrentUserAdmin()) {
+                if (adminBadge) adminBadge.classList.remove('hidden');
+                if (chatInput) chatInput.placeholder = '채팅 (/whois, /deluser, /resetall)';
             } else {
-                adminBadge.classList.add('hidden');
-                chatInput.placeholder = '채팅 입력...';
+                if (adminBadge) adminBadge.classList.add('hidden');
+                if (chatInput) chatInput.placeholder = '채팅 입력...';
+            }
+            updatePointsHUD();
+            applyEquippedCursorStyle();
+        }
+
+        // --- 13. Auth Mode & DOM Event Listeners ---
+        function applySelectedColorPreview(color) {
+            selectedColor = color;
+            const previewEl = document.getElementById('random-color-preview');
+            if (previewEl) previewEl.style.backgroundColor = color;
+            const hexLabelEl = document.getElementById('random-color-hex');
+            if (hexLabelEl) hexLabelEl.textContent = color.toUpperCase();
+        }
+
+        function switchAuthMode(mode) {
+            authMode = mode;
+            const tabLogin = document.getElementById('tab-mode-login');
+            const tabSignup = document.getElementById('tab-mode-signup');
+            const colorSection = document.getElementById('signup-color-section');
+            const subtitle = document.getElementById('auth-subtitle');
+            const submitBtn = document.getElementById('btn-auth-submit');
+            const errorBox = document.getElementById('auth-error-box');
+
+            errorBox.classList.add('hidden');
+
+            if (mode === 'login') {
+                tabLogin.className = 'py-2 rounded-xl font-extrabold text-xs bg-white text-amber-600 shadow-sm transition cursor-pointer';
+                tabSignup.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer';
+                colorSection.classList.add('hidden');
+                subtitle.textContent = '기존 닉네임과 비밀번호로 로그인하면 기존 색상이 유지됩니다!';
+                submitBtn.textContent = '로그인하고 입장하기';
+            } else {
+                tabSignup.className = 'py-2 rounded-xl font-extrabold text-xs bg-white text-amber-600 shadow-sm transition cursor-pointer';
+                tabLogin.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-500 hover:text-slate-800 transition cursor-pointer';
+                colorSection.classList.remove('hidden');
+                applySelectedColorPreview(pickRandomColor());
+                subtitle.textContent = '새 닉네임과 비밀번호, 랜덤 색상을 설정해 가입하세요!';
+                submitBtn.textContent = '회원가입 후 게임 시작하기';
             }
         }
 
-        // --- 7. Firebase Realtime Listeners ---
-        function listenToFirebase() {
-            if (playerProfile.nickname) {
-                onValue(ref(db, `players/${playerProfile.nickname}`), (snap) => {
-                    const data = snap.val();
-                    if (!data) return;
-                    playerProfile.points = typeof data.points === 'number' ? data.points : 0;
-                    playerProfile.unlockedItems = Object.assign({ cursor_default: true, sound_default: true }, data.unlockedItems || {});
-                    playerProfile.equippedCursor = data.equippedCursor || 'cursor_default';
-                    playerProfile.equippedSound = data.equippedSound || 'sound_default';
-                    playerProfile.critTier = typeof data.critTier === 'number' ? data.critTier : 0;
-
-                    applyEquippedCursorStyle();
-                    updateHudProfile();
-                    if (!document.getElementById('shop-modal').classList.contains('hidden')) {
-                        renderShopItems();
-                    }
-                });
-            }
-            const connectedRef = ref(db, '.info/connected');
-            onValue(connectedRef, (snap) => {
-                const badge = document.getElementById('server-status-badge');
-                if (snap.val() === true) {
-                    badge.textContent = '🟢 연결됨';
-                    badge.className = 'text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 whitespace-nowrap shrink-0';
+        function setupControls() {
+            // Leaderboard Collapse/Expand
+            document.getElementById('leaderboard-header').addEventListener('click', () => {
+                isLeaderboardCollapsed = !isLeaderboardCollapsed;
+                const listEl = document.getElementById('leaderboard-list');
+                const btnEl = document.getElementById('btn-toggle-leaderboard');
+                if (isLeaderboardCollapsed) {
+                    listEl.classList.add('hidden');
+                    btnEl.textContent = '▲';
                 } else {
-                    badge.textContent = '🔴 재연결';
-                    badge.className = 'text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30 whitespace-nowrap shrink-0';
+                    listEl.classList.remove('hidden');
+                    btnEl.textContent = '▼';
                 }
             });
 
-            const territoriesRef = ref(db, 'territories');
-            onValue(territoriesRef, (snapshot) => {
-                const nextTerritories = snapshot.val() || {};
-
-                if (isInitialSnapshotLoaded && playerProfile.nickname) {
-                    Object.entries(nextTerritories).forEach(([cellId, newData]) => {
-                        const prevData = territories[cellId];
-                        if (
-                            prevData &&
-                            prevData.owner === playerProfile.nickname &&
-                            newData &&
-                            newData.owner &&
-                            newData.owner !== playerProfile.nickname
-                        ) {
-                            triggerTerritoryStolenAlert(newData.owner, cellId);
-                        }
-                    });
-                }
-
-                territories = nextTerritories;
-                isInitialSnapshotLoaded = true;
-                updateLeaderboardAndStats();
-                scheduleMapRender();
-
-                if (selectedCell) {
-                    refreshConquestPanel();
-                }
-            });
-
-            const eventsQuery = query(ref(db, 'events'), limitToLast(1));
-            let isFirstEventLoad = true;
-            onValue(eventsQuery, (snapshot) => {
-                if (isFirstEventLoad) {
-                    isFirstEventLoad = false;
-                    return;
-                }
-                snapshot.forEach((child) => {
-                    const ev = child.val();
-                    if (ev && ev.message) {
-                        showLiveTicker(ev.message);
-                    }
-                });
-            });
-
-            const resetSignalRef = ref(db, 'system/forceReloadAt');
-            let initialReloadTimestamp = null;
-            onValue(resetSignalRef, (snapshot) => {
-                const serverTs = snapshot.val();
-                if (initialReloadTimestamp === null) {
-                    initialReloadTimestamp = serverTs || 0;
-                    return;
-                }
-                if (serverTs && serverTs > initialReloadTimestamp) {
-                    showToast('👑 관리자가 서버 강제 새로고침을 실행했습니다! 화면을 갱신합니다...');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 900);
-                }
-            });
-
-            listenToGlobalChat();
-        }
-
-        function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        function listenToGlobalChat() {
-            const chatMessagesEl = document.getElementById('chat-messages');
-            const chatQuery = query(ref(db, 'chat'), limitToLast(40));
-
-            onValue(chatQuery, (snapshot) => {
-                const items = [];
-                snapshot.forEach((child) => {
-                    items.push(child.val());
-                });
-
-                if (items.length === 0) {
-                    chatMessagesEl.innerHTML = '<div class="text-slate-400 text-[11px] text-center py-2">첫 번째 채팅 메시지를 남겨보세요!</div>';
-                    return;
-                }
-
-                chatMessagesEl.innerHTML = items.map((msg) => {
-                    const isAdmin = msg.sender === ADMIN_NICKNAME;
-                    const safeSender = escapeHtml(msg.sender || '익명');
-                    const safeText = escapeHtml(msg.text || '');
-                    const senderColor = msg.color || '#fbbf24';
-
-                    return `
-                        <div class="leading-snug break-words">
-                            ${isAdmin ? '<span class="inline-block text-[10px] font-extrabold px-1 py-0.2 rounded bg-rose-500/30 text-rose-300 border border-rose-400/50 mr-1">👑관리자</span>' : ''}
-                            <span class="font-extrabold" style="color:${senderColor};">${safeSender}</span>:
-                            <span class="text-slate-100">${safeText}</span>
-                        </div>
-                    `;
-                }).join('');
-
-                chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-            });
-        }
-
-        function setupGlobalChatControls() {
-            const chatForm = document.getElementById('chat-form');
-            const chatInput = document.getElementById('chat-input');
-            const chatBody = document.getElementById('chat-body');
-            const toggleBtn = document.getElementById('btn-toggle-chat');
-            const chatHeader = document.getElementById('chat-header');
-
-            let isChatCollapsed = window.innerWidth < 640;
-            if (isChatCollapsed) {
-                chatBody.classList.add('hidden');
-                toggleBtn.textContent = '▲';
-            }
-
-            chatHeader.addEventListener('click', () => {
+            // Chat Collapse/Expand
+            document.getElementById('chat-header').addEventListener('click', () => {
                 isChatCollapsed = !isChatCollapsed;
+                const chatBody = document.getElementById('chat-body');
+                const toggleBtn = document.getElementById('btn-toggle-chat');
                 if (isChatCollapsed) {
                     chatBody.classList.add('hidden');
                     toggleBtn.textContent = '▲';
                 } else {
                     chatBody.classList.remove('hidden');
                     toggleBtn.textContent = '▼';
-                    const msgBox = document.getElementById('chat-messages');
-                    msgBox.scrollTop = msgBox.scrollHeight;
                 }
             });
 
-            chatForm.addEventListener('submit', async (e) => {
+            // Chat & Admin Commands (/whois, /deluser, /resetall)
+            document.getElementById('chat-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!playerProfile.nickname) {
                     document.getElementById('nickname-modal').classList.remove('hidden');
                     return;
                 }
 
+                const chatInput = document.getElementById('chat-input');
                 const rawText = chatInput.value.trim();
                 if (!rawText) return;
                 chatInput.value = '';
 
-                if (rawText === '/resetall') {
-                    if (playerProfile.nickname === ADMIN_NICKNAME) {
-                        try {
-                            await set(ref(db, 'system/forceReloadAt'), Date.now());
-                            showToast('👑 전체 접속자 강제 새로고침 신호를 전송했습니다!');
-                        } catch (err) {
-                            showToast('명령어 실행 중 오류가 발생했습니다.');
-                        }
-                    } else {
-                        showToast('⛔ /resetall 명령어는 관리자(SisionPLUS)만 사용할 수 있습니다.');
-                    }
-                    return;
-                }
+                if (rawText.startsWith('/')) {
+                    const parts = rawText.split(/\s+/);
+                    const cmd = parts[0].toLowerCase();
+                    const arg = parts.slice(1).join(' ').trim();
 
-                if (rawText.startsWith('/whois ')) {
-                    if (playerProfile.nickname === ADMIN_NICKNAME) {
-                        const targetNick = rawText.replace('/whois ', '').trim();
-                        if (!targetNick) {
+                    if (cmd === '/resetall') {
+                        if (!isCurrentUserAdmin()) {
+                            showToast('⛔ 권한이 없습니다. SisionPLUS 관리자만 사용할 수 있습니다.');
+                            return;
+                        }
+                        await set(ref(db, 'system/forceReloadAt'), Date.now());
+                        return;
+                    }
+
+                    if (cmd === '/whois') {
+                        if (!isCurrentUserAdmin()) {
+                            showToast('⛔ 권한이 없습니다. SisionPLUS 관리자만 사용할 수 있습니다.');
+                            return;
+                        }
+                        if (!arg) {
                             showToast('사용법: /whois 닉네임');
                             return;
                         }
-                        try {
-                            const snap = await get(ref(db, `players/${targetNick}`));
-                            if (!snap.exists()) {
-                                showToast(`❌ [${targetNick}] 계정을 찾을 수 없습니다.`);
-                            } else {
-                                const info = snap.val();
-                                const ipStr = info.lastIp || '미기록(구버전 접속)';
-                                const devStr = info.deviceInfo || info.deviceId || '미기록';
-                                showToast(`🕵️ [${targetNick}] IP: ${ipStr} / 기기: ${devStr}`);
-                            }
-                        } catch (err) {
-                            showToast('유저 정보 조회 중 오류가 발생했습니다.');
-                        }
-                    } else {
-                        showToast('⛔ /whois 명령어는 관리자(SisionPLUS)만 사용할 수 있습니다.');
-                    }
-                    return;
-                }
-
-                if (rawText.startsWith('/deluser ')) {
-                    if (playerProfile.nickname === ADMIN_NICKNAME) {
-                        const targetNick = rawText.replace('/deluser ', '').trim();
-                        if (!targetNick || targetNick === ADMIN_NICKNAME) {
-                            showToast('삭제할 대상 닉네임을 정확히 입력해 주세요.');
+                        const snap = await get(ref(db, `players/${arg}`));
+                        if (!snap.exists()) {
+                            showToast(`❓ [${arg}] 유저를 찾을 수 없습니다.`);
                             return;
                         }
-                        try {
-                            await remove(ref(db, `players/${targetNick}`));
-                            const ownedIds = Object.entries(territories)
-                                .filter(([, d]) => d && d.owner === targetNick)
-                                .map(([id]) => id);
-                            for (const cid of ownedIds) {
-                                await remove(ref(db, `territories/${cid}`));
-                            }
-                            showToast(`🗑️ [${targetNick}] 계정 및 영토 ${ownedIds.length}칸을 삭제했습니다.`);
-                        } catch (err) {
-                            showToast('계정 삭제 중 오류가 발생했습니다.');
-                        }
-                    } else {
-                        showToast('⛔ /deluser 명령어는 관리자(SisionPLUS)만 사용할 수 있습니다.');
+                        const p = snap.val();
+                        showToast(`🔍 [${arg}] IP: ${p.lastIp || 'unknown'} | 기기: ${p.deviceInfo || 'unknown'} | 포인트: ${p.points || 0}P`);
+                        return;
                     }
+
+                    if (cmd === '/deluser') {
+                        if (!isCurrentUserAdmin()) {
+                            showToast('⛔ 권한이 없습니다. SisionPLUS 관리자만 사용할 수 있습니다.');
+                            return;
+                        }
+                        if (!arg || arg === ADMIN_NICKNAME) {
+                            showToast('사용법: /deluser 대상닉네임');
+                            return;
+                        }
+                        await remove(ref(db, `players/${arg}`));
+                        showToast(`🗑️ [${arg}] 계정 데이터를 삭제했습니다.`);
+                        return;
+                    }
+
+                    showToast(`❓ 알 수 없는 명령어입니다: ${cmd}`);
                     return;
                 }
 
@@ -1973,419 +2291,156 @@
                     showToast('채팅 전송에 실패했습니다.');
                 }
             });
-        }
 
-        function updateLeaderboardAndStats() {
-            const counts = {};
-            const colors = {};
-            let totalClaimed = 0;
+            // Auth Tabs
+            document.getElementById('tab-mode-login').addEventListener('click', () => switchAuthMode('login'));
+            document.getElementById('tab-mode-signup').addEventListener('click', () => switchAuthMode('signup'));
 
-            Object.values(territories).forEach((t) => {
-                if (!t || !t.owner) return;
-                totalClaimed++;
-                counts[t.owner] = (counts[t.owner] || 0) + 1;
-                colors[t.owner] = t.color || '#f59e0b';
+            applySelectedColorPreview(selectedColor);
+            document.getElementById('btn-reroll-color').addEventListener('click', () => {
+                applySelectedColorPreview(pickRandomColor());
             });
 
-            const myCount = counts[playerProfile.nickname] || 0;
-            document.getElementById('hud-my-count').textContent = myCount.toLocaleString();
-            document.getElementById('hud-total-claimed').textContent = totalClaimed.toLocaleString();
-
-            const sorted = Object.entries(counts)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5);
-
-            const listEl = document.getElementById('leaderboard-list');
-            if (sorted.length === 0) {
-                listEl.innerHTML = '<div class="text-slate-400 text-center py-2">아직 점령된 땅이 없습니다!</div>';
-                return;
-            }
-
-            const medals = ['🥇', '🥈', '🥉', '4위', '5위'];
-            listEl.innerHTML = sorted
-                .map(([owner, count], idx) => {
-                    const isMe = owner === playerProfile.nickname;
-                    return `
-                        <div class="flex items-center justify-between px-2 py-1 rounded-xl ${isMe ? 'bg-amber-500/20 border border-amber-400/50' : 'bg-slate-800/75'}">
-                            <div class="flex items-center gap-1.5 truncate">
-                                <span class="font-bold text-[11px] w-5 text-center">${medals[idx]}</span>
-                                <span class="w-2.5 h-2.5 rounded-full shrink-0 border border-white/60" style="background:${colors[owner]}"></span>
-                                <span class="font-bold truncate ${isMe ? 'text-amber-300' : 'text-white'}">${owner}</span>
-                            </div>
-                            <span class="font-extrabold text-emerald-400 shrink-0 ml-1.5">${count.toLocaleString()}칸</span>
-                        </div>
-                    `;
-                })
-                .join('');
-        }
-
-        // --- 8. Territory Stolen Push Notification & Friend Invite ---
-        function requestBrowserNotificationPermission() {
-            if ('Notification' in window && Notification.permission === 'default') {
-                Notification.requestPermission().catch(() => {});
-            }
-        }
-
-        function triggerTerritoryStolenAlert(attackerName, cellId) {
-            if (!stealAlertEnabled) return;
-            const alertMessage = `🚨 ${attackerName}님이 땅을 빼앗았습니다!`;
-
-            showLiveTicker(alertMessage);
-            playTone(260, 'sawtooth', 0.16, 0.16);
-
-            if ('Notification' in window && Notification.permission === 'granted') {
-                try {
-                    const notif = new Notification('클릭땅 (ClickLand) 영토 침공 경보!', {
-                        body: `${attackerName}님이 땅을 빼앗았습니다! (${cellId}) 지금 접속해서 되찾으세요!`,
-                        tag: 'clickland-territory-stolen'
-                    });
-                    notif.onclick = () => {
-                        window.focus();
-                        notif.close();
-                    };
-                } catch (e) {}
-            }
-        }
-
-        function updateStealAlertToggleUI() {
-            const btn = document.getElementById('btn-toggle-steal-alert');
-            if (!btn) return;
-            if (stealAlertEnabled) {
-                btn.textContent = 'ON';
-                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-emerald-500 text-slate-950 transition cursor-pointer shrink-0';
-            } else {
-                btn.textContent = 'OFF';
-                btn.className = 'px-3 py-1.5 rounded-xl font-extrabold text-xs bg-slate-700 text-slate-300 transition cursor-pointer shrink-0';
-            }
-        }
-
-        async function shareOrCopyInviteMessage() {
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: '클릭땅 (ClickLand) - 땅따먹기 게임',
-                        text: INVITE_MESSAGE_TEXT
-                    });
-                    return;
-                } catch (e) {}
-            }
-            copyInviteMessageToClipboard();
-        }
-
-        async function copyInviteMessageToClipboard() {
-            try {
-                await navigator.clipboard.writeText(INVITE_MESSAGE_TEXT);
-                showToast('📋 친구 초대 문구가 복사되었습니다! 카톡이나 문자에 붙여넣기 하세요.');
-            } catch (e) {
-                const ta = document.createElement('textarea');
-                ta.value = INVITE_MESSAGE_TEXT;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                showToast('📋 친구 초대 문구가 복사되었습니다!');
-            }
-        }
-
-        function openSmsInviteApp() {
-            const encoded = encodeURIComponent(INVITE_MESSAGE_TEXT);
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            window.location.href = isIOS ? `sms:&body=${encoded}` : `sms:?body=${encoded}`;
-        }
-
-        // --- 9. Conquest & Click Interaction Logic ---
-        function handleCellInteraction(cell) {
-            if (!playerProfile.nickname) {
-                document.getElementById('nickname-modal').classList.remove('hidden');
-                return;
-            }
-            if (isMacroLocked) {
-                openMacroCaptchaModal(false);
-                return;
-            }
-
-            const now = Date.now();
-            if (lastConquerCompletedAt > 0 && now - lastConquerCompletedAt < 1500) {
-                rapidSwitchStreak++;
-                if (rapidSwitchStreak >= 2) {
-                    rapidSwitchStreak = 0;
-                    openMacroCaptchaModal(true);
-                    return;
-                }
-            } else {
-                rapidSwitchStreak = 0;
-            }
-
-            selectedCell = cell;
-            openConquestPanel(cell);
-            scheduleMapRender();
-        }
-
-        function openConquestPanel(cell) {
-            const panel = document.getElementById('conquest-panel');
-            panel.classList.remove('hidden');
-            refreshConquestPanel();
-        }
-
-        function refreshConquestPanel() {
-            if (!selectedCell) return;
-            const cell = selectedCell;
-            const existing = territories[cell.id];
-            const req = getRequiredClicksForCell(cell);
-
-            const badge = document.getElementById('panel-badge');
-            const landmarkBadge = document.getElementById('panel-landmark-badge');
-            const title = document.getElementById('panel-title');
-            const coords = document.getElementById('panel-coords');
-            const siegeInfo = document.getElementById('panel-siege-info');
-            const btnClick = document.getElementById('btn-click-conquer');
-
-            coords.textContent = `${cell.centerLat.toFixed(6)}, ${cell.centerLng.toFixed(6)}`;
-
-            if (req.landmark) {
-                landmarkBadge.textContent = `🏛️ ${req.landmark.name} (기본 150클릭)`;
-                landmarkBadge.classList.remove('hidden');
-            } else {
-                landmarkBadge.classList.add('hidden');
-            }
-
-            siegeInfo.textContent = `누적 공성 할증: ${req.conquerCount}회 (+${req.siegeBonus}클릭) · 총 ${req.totalRequired}클릭 필요`;
-
-            const isMine = existing && existing.owner === playerProfile.nickname;
-
-            if (isMine) {
-                badge.textContent = '👑 내 영토';
-                badge.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-400/50';
-                title.textContent = `${playerProfile.nickname}님의 방어 구역`;
-                btnClick.disabled = true;
-                btnClick.textContent = '✅ 이미 점령한 내 영토입니다';
-                btnClick.className = 'w-full py-3 sm:py-3.5 rounded-2xl bg-slate-700 text-slate-300 font-game text-base sm:text-lg cursor-not-allowed';
-                updateProgressBarUI(req.totalRequired, req.totalRequired);
-            } else if (existing && existing.owner) {
-                badge.textContent = `⚔️ ${existing.owner}의 영토`;
-                badge.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 border border-rose-400/50';
-                title.textContent = `${existing.owner}의 땅 빼앗기!`;
-                btnClick.disabled = false;
-                btnClick.textContent = '⚔️ 광클해서 땅 빼앗기!';
-                btnClick.className = 'w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 active:scale-95 text-white font-game text-lg sm:text-xl shadow-lg shadow-rose-500/30 transition cursor-pointer btn-pulse';
-                const current = localClickProgress[cell.id] || 0;
-                updateProgressBarUI(current, req.totalRequired);
-            } else {
-                badge.textContent = '🏳️ 빈 땅 (무주지)';
-                badge.className = 'text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40';
-                title.textContent = req.landmark ? req.landmark.name : '5m × 5m 구역 점령전';
-                btnClick.disabled = false;
-                btnClick.textContent = '👆 광클해서 점령하기!';
-                btnClick.className = 'w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-game text-lg sm:text-xl shadow-lg shadow-orange-500/30 transition cursor-pointer btn-pulse';
-                const current = localClickProgress[cell.id] || 0;
-                updateProgressBarUI(current, req.totalRequired);
-            }
-        }
-
-        function updateProgressBarUI(current, total) {
-            const clamped = Math.min(current, total);
-            const pct = total > 0 ? Math.floor((clamped / total) * 100) : 0;
-            document.getElementById('panel-progress-text').textContent = `${clamped} / ${total} 클릭 (${pct}%)`;
-            document.getElementById('panel-progress-bar').style.width = `${pct}%`;
-        }
-
-        function spawnFloatingClickText(x, y, text = '+1') {
-            const el = document.createElement('div');
-            el.className = 'floating-click-text';
-            el.textContent = text;
-            const jitterX = (Math.random() - 0.5) * 44;
-            el.style.left = `${x + jitterX}px`;
-            el.style.top = `${y - 14}px`;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 680);
-        }
-
-        async function executeConquerClaim(cell) {
-            const territoryRef = ref(db, `territories/${cell.id}`);
-            const existingBefore = territories[cell.id];
-            const previousOwner = existingBefore && existingBefore.owner ? existingBefore.owner : null;
-
-            try {
-                await runTransaction(territoryRef, (currentData) => {
-                    const prevCount = currentData && typeof currentData.conquerCount === 'number' ? currentData.conquerCount : 0;
-                    return {
-                        owner: playerProfile.nickname,
-                        color: playerProfile.color,
-                        lat: cell.centerLat,
-                        lng: cell.centerLng,
-                        conquerCount: prevCount + 1,
-                        updatedAt: Date.now()
-                    };
-                });
-
-                const eventMsg = previousOwner && previousOwner !== playerProfile.nickname
-                    ? `⚔️ [${playerProfile.nickname}]님이 [${previousOwner}]님의 영토를 빼앗았습니다!`
-                    : `🚩 [${playerProfile.nickname}]님이 새로운 5m × 5m 영토를 점령했습니다!`;
-
-                await push(ref(db, 'events'), {
-                    message: eventMsg,
-                    timestamp: Date.now()
-                });
-
-                // 땅 점령 시 1P 지급
-                if (playerProfile.nickname) {
-                    const ptsRef = ref(db, `players/${playerProfile.nickname}/points`);
-                    await runTransaction(ptsRef, (cur) => (typeof cur === 'number' ? cur : 0) + 1);
-                }
-
-                localClickProgress[cell.id] = 0;
-                lastConquerCompletedAt = Date.now();
-                playConquerFanfare();
-                showToast(`🎉 [${cell.id}] 구역 점령 완료! (+1P 획득 💰)`);
-            } catch (err) {
-                console.error('Claim transaction failed:', err);
-                showToast('서버 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
-            }
-        }
-
-        // --- 10. UI Helper & Event Bindings ---
-        let toastTimer = null;
-        function showToast(msg) {
-            const ticker = document.getElementById('live-ticker');
-            ticker.textContent = msg;
-            ticker.classList.remove('hidden');
-            if (toastTimer) clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => ticker.classList.add('hidden'), 3000);
-        }
-
-        function showLiveTicker(msg) {
-            showToast(msg);
-        }
-
-        function setupControls() {
-            const lbHeader = document.getElementById('leaderboard-header');
-            const lbList = document.getElementById('leaderboard-list');
-            const lbToggleBtn = document.getElementById('btn-toggle-leaderboard');
-            let isLbCollapsed = window.innerWidth < 640;
-
-            if (isLbCollapsed) {
-                lbList.classList.add('hidden');
-                lbToggleBtn.textContent = '▶';
-            }
-
-            lbHeader.addEventListener('click', () => {
-                isLbCollapsed = !isLbCollapsed;
-                if (isLbCollapsed) {
-                    lbList.classList.add('hidden');
-                    lbToggleBtn.textContent = '▶';
-                } else {
-                    lbList.classList.remove('hidden');
-                    lbToggleBtn.textContent = '▼';
-                }
-            });
-
-            const btnClick = document.getElementById('btn-click-conquer');
-            btnClick.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            });
-            btnClick.addEventListener('click', (e) => {
-                btnClick.blur();
-                if (!selectedCell) return;
-                const existing = territories[selectedCell.id];
-                if (existing && existing.owner === playerProfile.nickname) return;
-
-                if (!verifyHumanClick(e)) return;
-
-                const req = getRequiredClicksForCell(selectedCell);
-                // 1.1배(10% 확률 2배) / 1.2배(20% 확률 2배) 크리티컬 판정
-                const critChance = playerProfile.critTier === 2 ? 0.20 : (playerProfile.critTier === 1 ? 0.10 : 0);
-                const isCrit = critChance > 0 && Math.random() < critChance;
-                const clickGain = isCrit ? 2 : 1;
-
-                const nextCount = (localClickProgress[selectedCell.id] || 0) + clickGain;
-                localClickProgress[selectedCell.id] = nextCount;
-
-                const rect = btnClick.getBoundingClientRect();
-                const cx = e.clientX || rect.left + rect.width / 2;
-                const cy = e.clientY || rect.top;
-                spawnFloatingClickText(cx, cy, isCrit ? '💥 크리티컬 +2!' : '+1 👆');
-                playClickSound(nextCount / req.totalRequired);
-                if (isCrit) {
-                    setTimeout(() => playTone(980, 'sine', 0.08, 0.15), 35);
-                }
-
-                updateProgressBarUI(nextCount, req.totalRequired);
-
-                if (nextCount >= req.totalRequired) {
-                    btnClick.disabled = true;
-                    btnClick.textContent = '⏳ 서버에 점령 기록 중...';
-                    executeConquerClaim(selectedCell);
-                }
-            });
-
-            document.getElementById('btn-close-panel').addEventListener('click', () => {
-                selectedCell = null;
-                document.getElementById('conquest-panel').classList.add('hidden');
-                scheduleMapRender();
-            });
-
-            document.getElementById('btn-auto-zoom-in').addEventListener('click', () => {
-                map.setZoom(19, { animate: true });
-            });
-
-            document.getElementById('preset-select').addEventListener('change', (e) => {
-                const [lat, lng, z] = e.target.value.split(',').map(Number);
-                map.setView([lat, lng], z, { animate: true });
-            });
-
-            document.getElementById('search-form').addEventListener('submit', async (e) => {
+            // Login / Signup Form Submit
+            document.getElementById('nickname-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const q = document.getElementById('search-input').value.trim();
-                if (!q) return;
+                const nickInput = document.getElementById('input-nickname').value.trim();
+                const passInput = document.getElementById('input-password').value;
+                const errorBox = document.getElementById('auth-error-box');
+                const submitBtn = document.getElementById('btn-auth-submit');
+
+                if (!nickInput || passInput.length < 4) {
+                    errorBox.textContent = '닉네임과 4자리 이상의 비밀번호를 입력해 주세요.';
+                    errorBox.classList.remove('hidden');
+                    return;
+                }
+                if (/[.#$\[\]\/]/.test(nickInput)) {
+                    errorBox.textContent = '닉네임에는 . # $ [ ] / 문자를 사용할 수 없습니다.';
+                    errorBox.classList.remove('hidden');
+                    return;
+                }
+
+                errorBox.classList.add('hidden');
+                submitBtn.disabled = true;
+                submitBtn.textContent = authMode === 'login' ? '로그인 확인 중...' : '회원가입 처리 중...';
+
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`);
-                    const data = await res.json();
-                    if (data && data.length > 0) {
-                        const lat = parseFloat(data[0].lat);
-                        const lng = parseFloat(data[0].lon);
-                        map.setView([lat, lng], 19, { animate: true });
-                        showToast(`📍 '${data[0].display_name.split(',')[0]}' 위치로 이동했습니다!`);
+                    const passHash = await hashPassword(passInput);
+                    const playerRef = ref(db, `players/${nickInput}`);
+                    const snap = await get(playerRef);
+                    let finalColor = selectedColor;
+
+                    if (authMode === 'login') {
+                        if (!snap.exists()) {
+                            errorBox.textContent = '등록되지 않은 닉네임입니다. [✨ 회원가입] 탭에서 먼저 가입해 주세요!';
+                            errorBox.classList.remove('hidden');
+                            return;
+                        }
+                        const existing = snap.val();
+                        if (existing.passHash && existing.passHash !== passHash) {
+                            errorBox.textContent = '비밀번호가 일치하지 않습니다.';
+                            errorBox.classList.remove('hidden');
+                            return;
+                        }
+                        if (!existing.passHash) {
+                            await update(playerRef, { passHash });
+                        }
+                        finalColor = existing.color || selectedColor;
                     } else {
-                        showToast('검색 결과를 찾지 못했습니다. 다른 도시/장소명을 입력해 보세요.');
+                        if (snap.exists()) {
+                            errorBox.textContent = '이미 사용 중인 닉네임입니다. 다른 닉네임을 입력해 주세요.';
+                            errorBox.classList.remove('hidden');
+                            return;
+                        }
+                        await set(playerRef, {
+                            nickname: nickInput,
+                            passHash: passHash,
+                            color: selectedColor,
+                            points: 0,
+                            unlockedItems: {
+                                cursor_default: true,
+                                sound_default: true
+                            },
+                            equippedCursor: 'cursor_default',
+                            equippedSound: 'sound_default',
+                            critTier: 0,
+                            createdAt: Date.now()
+                        });
                     }
+
+                    playerProfile.nickname = nickInput;
+                    playerProfile.color = finalColor;
+                    playerProfile.passHash = passHash;
+
+                    localStorage.setItem('wc_nickname', nickInput);
+                    localStorage.setItem('wc_color', finalColor);
+                    localStorage.setItem('wc_pass_hash', passHash);
+
+                    updateProfileHUD();
+                    updateHUDAndLeaderboard();
+                    subscribeToPlayerProfile(nickInput);
+                    recordClientDeviceAndIp(nickInput);
+
+                    document.getElementById('nickname-modal').classList.add('hidden');
+                    showToast(
+                        authMode === 'login'
+                            ? `다시 오셨군요, ${nickInput}님!`
+                            : `🎉 회원가입 완료! ${nickInput}님 환영합니다!`
+                    );
                 } catch (err) {
-                    showToast('장소 검색 중 네트워크 오류가 발생했습니다.');
+                    console.error('Auth error:', err);
+                    errorBox.textContent = '서버 인증 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+                    errorBox.classList.remove('hidden');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = authMode === 'login' ? '로그인하고 입장하기' : '회원가입 후 게임 시작하기';
                 }
             });
 
-            document.getElementById('btn-my-gps').addEventListener('click', () => {
-                if (!navigator.geolocation) {
-                    showToast('이 브라우저에서는 GPS 위치 기능을 지원하지 않습니다.');
-                    return;
-                }
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        map.setView([pos.coords.latitude, pos.coords.longitude], 19, { animate: true });
-                        showToast('📍 현재 내 GPS 위치로 이동했습니다!');
-                    },
-                    () => {
-                        showToast('위치 권한이 거부되었거나 GPS 신호를 가져올 수 없습니다.');
-                    },
-                    { enableHighAccuracy: true, timeout: 8000 }
-                );
+            // Invite & Settings Modals
+            document.getElementById('btn-invite-friend').addEventListener('click', () => {
+                shareOrInviteFriends();
             });
 
-            document.getElementById('btn-jump-my-land').addEventListener('click', () => {
-                const myLands = Object.values(territories).filter(t => t && t.owner === playerProfile.nickname);
-                if (myLands.length === 0) {
-                    showToast('아직 점령한 내 영토가 없습니다! 지도의 빈 칸을 클릭해 점령해 보세요.');
-                    return;
-                }
-                const target = myLands[myLands.length - 1];
-                if (typeof target.lat === 'number' && typeof target.lng === 'number') {
-                    map.setView([target.lat, target.lng], 19, { animate: true });
-                    showToast('🚩 내 영토 위치로 이동했습니다!');
-                }
+            document.getElementById('btn-open-settings').addEventListener('click', () => {
+                updateStealAlertButtonUI();
+                document.getElementById('settings-modal').classList.remove('hidden');
             });
 
+            document.getElementById('btn-close-settings-modal').addEventListener('click', () => {
+                document.getElementById('settings-modal').classList.add('hidden');
+            });
+
+            document.getElementById('btn-toggle-steal-alert').addEventListener('click', async () => {
+                stealAlertEnabled = !stealAlertEnabled;
+                localStorage.setItem('wc_steal_alert', String(stealAlertEnabled));
+                updateStealAlertButtonUI();
+                if (stealAlertEnabled && 'Notification' in window && Notification.permission === 'default') {
+                    try {
+                        await Notification.requestPermission();
+                    } catch (e) {}
+                }
+                showToast(stealAlertEnabled ? '🚨 영토 탈취 푸시 알림을 켰습니다.' : '🔕 영토 탈취 푸시 알림을 껐습니다.');
+            });
+
+            document.getElementById('btn-copy-invite').addEventListener('click', () => {
+                copyTextFallback(INVITE_MESSAGE_TEXT);
+                showToast('📋 홍보 문구와 1·2·3차 서버 주소가 복사되었습니다!');
+            });
+
+            document.getElementById('btn-sms-invite').addEventListener('click', () => {
+                window.location.href = `sms:?body=${encodeURIComponent(INVITE_MESSAGE_TEXT)}`;
+            });
+
+            document.getElementById('btn-switch-account').addEventListener('click', () => {
+                document.getElementById('settings-modal').classList.add('hidden');
+                switchAuthMode('login');
+                document.getElementById('input-nickname').value = playerProfile.nickname;
+                document.getElementById('input-password').value = '';
+                document.getElementById('nickname-modal').classList.remove('hidden');
+            });
+
+            // Sound & Map Style Toggles
             document.getElementById('btn-toggle-sound').addEventListener('click', (e) => {
                 soundEnabled = !soundEnabled;
                 e.currentTarget.textContent = soundEnabled ? '🔊' : '🔇';
@@ -2399,52 +2454,166 @@
                 }
                 activeTileLayer = createBaseTileLayer(isSatelliteMode).addTo(map);
                 document.getElementById('map-style-label').textContent = isSatelliteMode ? '일반' : '위성';
-                showToast(isSatelliteMode ? '🛰️ 고해상도 위성지도로 전환했습니다.' : '🗺️ 일반 도로 지도로 전환했습니다.');
+                showToast(isSatelliteMode ? '고해상도 위성지도로 전환했습니다.' : '일반 도로 지도로 전환했습니다.');
             });
 
-            document.getElementById('btn-invite-friend').addEventListener('click', () => {
-                shareOrCopyInviteMessage();
+            // Preset & Search & GPS
+            document.getElementById('preset-select').addEventListener('change', (e) => {
+                const [lat, lng, zoom] = e.target.value.split(',').map(Number);
+                map.setView([lat, lng], zoom);
             });
 
-            const settingsModal = document.getElementById('settings-modal');
-            updateStealAlertToggleUI();
+            document.getElementById('search-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const q = document.getElementById('search-input').value.trim();
+                if (!q) return;
 
-            document.getElementById('btn-open-settings').addEventListener('click', () => {
-                updateStealAlertToggleUI();
-                settingsModal.classList.remove('hidden');
-            });
-
-            document.getElementById('btn-close-settings-modal').addEventListener('click', () => {
-                settingsModal.classList.add('hidden');
-            });
-
-            document.getElementById('btn-toggle-steal-alert').addEventListener('click', () => {
-                stealAlertEnabled = !stealAlertEnabled;
-                localStorage.setItem('wc_steal_alert', String(stealAlertEnabled));
-                updateStealAlertToggleUI();
-                if (stealAlertEnabled) {
-                    requestBrowserNotificationPermission();
-                    showToast('🚨 땅 빼앗김 푸시 알림이 켜졌습니다!');
-                } else {
-                    showToast('🔕 땅 빼앗김 푸시 알림이 꺼졌습니다.');
+                showToast(`'${q}' 위치 검색 중...`);
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`);
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        const lat = parseFloat(data[0].lat);
+                        const lng = parseFloat(data[0].lon);
+                        map.setView([lat, lng], 19);
+                        showToast(`📍 ${data[0].display_name.split(',')[0]} 이동 완료!`);
+                    } else {
+                        showToast('검색 결과를 찾지 못했습니다.');
+                    }
+                } catch (err) {
+                    showToast('장소 검색 중 오류가 발생했습니다.');
                 }
             });
 
-            document.getElementById('btn-copy-invite').addEventListener('click', () => {
-                copyInviteMessageToClipboard();
+            document.getElementById('btn-my-gps').addEventListener('click', () => {
+                if (!navigator.geolocation) {
+                    showToast('이 브라우저에서는 GPS 위치 기능을 지원하지 않습니다.');
+                    return;
+                }
+                showToast('현재 GPS 위치를 찾는 중...');
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        map.setView([pos.coords.latitude, pos.coords.longitude], 19);
+                        showToast('📍 현재 내 위치로 이동했습니다!');
+                    },
+                    () => {
+                        showToast('위치 권한이 거부되었거나 위치를 가져올 수 없습니다.');
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
+                );
             });
 
-            document.getElementById('btn-sms-invite').addEventListener('click', () => {
-                openSmsInviteApp();
+            document.getElementById('btn-jump-my-land').addEventListener('click', () => {
+                const myLands = Object.values(territories).filter(t => t && t.owner === playerProfile.nickname);
+                if (myLands.length === 0) {
+                    showToast('아직 점령한 내 영토가 없습니다. 격자를 클릭해 점령해 보세요!');
+                    return;
+                }
+                const target = myLands[myLands.length - 1];
+                map.setView([target.lat, target.lng], 19);
+                showToast('👑 내 영토로 이동했습니다!');
             });
 
-            document.getElementById('btn-switch-account').addEventListener('click', () => {
-                settingsModal.classList.add('hidden');
-                setAuthMode('login');
-                document.getElementById('nickname-modal').classList.remove('hidden');
+            document.getElementById('btn-auto-zoom-in').addEventListener('click', () => {
+                map.setZoom(18);
             });
 
-            // Macro Captcha 3-Stage Unlock Form (새로고침 방지 및 인증 처리)
+            document.getElementById('btn-close-panel').addEventListener('click', () => {
+                selectedCell = null;
+                document.getElementById('conquest-panel').classList.add('hidden');
+                scheduleMapRender();
+            });
+
+            // Conquest Click Button (With Critical Multiplier & Anti-Macro Guard)
+            const attackBtn = document.getElementById('btn-click-conquer');
+            attackBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+
+            attackBtn.addEventListener('click', async (e) => {
+                attackBtn.blur();
+
+                if (!verifyHumanClick(e)) {
+                    e.preventDefault();
+                    return;
+                }
+
+                if (!selectedCell || !playerProfile.nickname) return;
+                const existing = territories[selectedCell.id];
+                if (existing && existing.owner === playerProfile.nickname) return;
+
+                const { required } = getRequiredClicksForCell(selectedCell);
+
+                // Critical Hit Check (tier 1: 10% chance 2x, tier 2: 20% chance 2x)
+                const critChance = playerProfile.critTier === 2 ? 0.20 : (playerProfile.critTier === 1 ? 0.10 : 0);
+                const isCrit = critChance > 0 && Math.random() < critChance;
+                const gain = isCrit ? 2 : 1;
+
+                const nextClicks = (localClickProgress[selectedCell.id] || 0) + gain;
+                localClickProgress[selectedCell.id] = nextClicks;
+
+                playClickSound(nextClicks / required, isCrit);
+                spawnFloatingClickEffect(
+                    e.clientX,
+                    e.clientY,
+                    isCrit ? `⚡CRIT +2! (${nextClicks}/${required})` : `+1 (${nextClicks}/${required})`,
+                    isCrit
+                );
+                updateConquestProgressUI(nextClicks, required);
+
+                if (nextClicks >= required) {
+                    await executeConquerClaim(selectedCell);
+                }
+            });
+
+            // Global Chat Hotkeys ('t'/'T'/'ㅅ' or '/')
+            document.addEventListener('keydown', (e) => {
+                const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+                if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') return;
+
+                const isLoginOpen = !document.getElementById('nickname-modal').classList.contains('hidden');
+                const isCaptchaOpen = !document.getElementById('macro-captcha-modal').classList.contains('hidden');
+                const isShopOpen = !document.getElementById('shop-modal').classList.contains('hidden');
+                if (isLoginOpen || isCaptchaOpen || isShopOpen || e.ctrlKey || e.metaKey || e.altKey) return;
+
+                const key = e.key;
+                if (key === 't' || key === 'T' || key === 'ㅅ' || key === '/') {
+                    e.preventDefault();
+
+                    if (isChatCollapsed) {
+                        isChatCollapsed = false;
+                        document.getElementById('chat-body').classList.remove('hidden');
+                        document.getElementById('btn-toggle-chat').textContent = '▼';
+                    }
+
+                    const chatInput = document.getElementById('chat-input');
+                    chatInput.focus();
+
+                    if (key === '/' && !chatInput.value.startsWith('/')) {
+                        chatInput.value = '/' + chatInput.value;
+                    }
+                }
+            });
+
+            // Macro Captcha 3-Stage Unlock Form (Block Paste / Copy / Cut / Drop)
+            const captchaInputs = [
+                document.getElementById('input-macro-captcha-1'),
+                document.getElementById('input-macro-captcha-2'),
+                document.getElementById('input-macro-captcha-3')
+            ];
+            captchaInputs.forEach((inp) => {
+                if (!inp) return;
+                ['paste', 'drop', 'copy', 'cut'].forEach((evtName) => {
+                    inp.addEventListener(evtName, (evt) => {
+                        evt.preventDefault();
+                        showToast('🚫 보안 인증창에서는 복사/붙여넣기를 사용할 수 없습니다!');
+                    });
+                });
+            });
+
             const macroForm = document.getElementById('macro-captcha-form');
             if (macroForm) {
                 macroForm.addEventListener('submit', (e) => {
@@ -2456,27 +2625,34 @@
                     const input3 = document.getElementById('input-macro-captcha-3');
                     const errEl = document.getElementById('macro-captcha-error');
 
-                    const val1 = (input1 ? input1.value : '').trim().toLowerCase();
-                    const val2 = (input2 ? input2.value : '').trim();
-                    const val3 = (input3 ? input3.value : '').trim();
+                    const val1 = (input1 ? input1.value : '').normalize('NFC').trim().toLowerCase();
+                    const val2 = (input2 ? input2.value : '').normalize('NFC').replace(/\s+/g, ' ').trim();
+                    const val3 = (input3 ? input3.value : '').normalize('NFC').replace(/\s+/g, '').trim();
+                    const target3 = (currentHardHangul || '').normalize('NFC').trim();
 
                     const passStage1 = val1 === 'imnoauto';
                     const passStage2 = macroWarningCount < 3 || val2 === '나는 오토가 아닙니다';
-                    const passStage3 = macroWarningCount <= 5 || val3 === currentHardHangul;
+                    const passStage3 = macroWarningCount <= 5 || val3 === target3;
 
                     if (passStage1 && passStage2 && passStage3) {
                         isMacroLocked = false;
-                        identicalIntervalStreak = 0;
+                        macroPatternStreak = 0;
                         baseIntervalMs = null;
-                        stationaryClickStreak = 0;
-                        teleportClickStreak = 0;
+                        baseClickCoord = null;
                         lastValidClickTime = 0;
                         if (errEl) errEl.classList.add('hidden');
                         document.getElementById('macro-captcha-modal').classList.add('hidden');
                         playTone(660, 'sine', 0.14, 0.18);
                         showToast('✅ 인증 완료! 다시 점령을 계속할 수 있습니다.');
                     } else {
-                        if (errEl) errEl.classList.remove('hidden');
+                        if (errEl) {
+                            const failedStages = [];
+                            if (!passStage1) failedStages.push('1번(imnoauto)');
+                            if (!passStage2) failedStages.push('2번(나는 오토가 아닙니다)');
+                            if (!passStage3) failedStages.push(`3번(${target3})`);
+                            errEl.textContent = `❌ 불일치 항목: ${failedStages.join(', ')}`;
+                            errEl.classList.remove('hidden');
+                        }
                         playTone(180, 'sawtooth', 0.18, 0.18);
                     }
                 });
@@ -2485,224 +2661,21 @@
             setupShopModal();
         }
 
-        // --- 11. Point Shop Logic ---
-        function setActiveShopTab(tabName) {
-            activeShopTab = tabName;
-            const tabs = [
-                { id: 'shop-tab-cursor', key: 'cursor' },
-                { id: 'shop-tab-sound', key: 'sound' },
-                { id: 'shop-tab-crit', key: 'crit' }
-            ];
-            tabs.forEach((t) => {
-                const el = document.getElementById(t.id);
-                if (!el) return;
-                if (t.key === tabName) {
-                    el.className = 'py-2 rounded-xl font-extrabold text-xs bg-fuchsia-600 text-white shadow transition cursor-pointer';
-                } else {
-                    el.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-400 hover:text-white transition cursor-pointer';
-                }
-            });
-            renderShopItems();
-        }
+        // --- 14. Bootstrap Application ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            setupControls();
+            setupFirebaseSync();
+            setupChatAndAdminSync();
 
-        async function handlePurchaseOrEquip(category, item) {
-            if (!playerProfile.nickname) {
-                showToast('로그인 후 상점을 이용할 수 있습니다.');
-                return;
+            if (playerProfile.nickname && playerProfile.passHash) {
+                document.getElementById('input-nickname').value = playerProfile.nickname;
+                updateProfileHUD();
+                subscribeToPlayerProfile(playerProfile.nickname);
+                recordClientDeviceAndIp(playerProfile.nickname);
+                document.getElementById('nickname-modal').classList.add('hidden');
             }
-            const playerRef = ref(db, `players/${playerProfile.nickname}`);
-            const isUnlocked = Boolean(playerProfile.unlockedItems && playerProfile.unlockedItems[item.id]);
-
-            if (category === 'cursor') {
-                if (isUnlocked) {
-                    await update(playerRef, { equippedCursor: item.id });
-                    playerProfile.equippedCursor = item.id;
-                    applyEquippedCursorStyle();
-                    renderShopItems();
-                    showToast(`🖱️ [${item.name}] 커서를 장착했습니다!`);
-                    return;
-                }
-                if ((playerProfile.points || 0) < item.price) {
-                    showToast(`💰 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points || 0}P)`);
-                    return;
-                }
-                await runTransaction(playerRef, (cur) => {
-                    if (!cur) return cur;
-                    const pts = typeof cur.points === 'number' ? cur.points : 0;
-                    if (pts < item.price) return;
-                    cur.points = pts - item.price;
-                    cur.unlockedItems = Object.assign({}, cur.unlockedItems, { [item.id]: true });
-                    cur.equippedCursor = item.id;
-                    return cur;
-                });
-                playConquerFanfare();
-                showToast(`🎉 [${item.name}] 구매 및 장착 완료!`);
-            } else if (category === 'sound') {
-                if (isUnlocked) {
-                    await update(playerRef, { equippedSound: item.id });
-                    playerProfile.equippedSound = item.id;
-                    playClickSound(0.75, item.id);
-                    renderShopItems();
-                    showToast(`🔊 [${item.name}] 효과음을 적용했습니다!`);
-                    return;
-                }
-                if ((playerProfile.points || 0) < item.price) {
-                    showToast(`💰 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points || 0}P)`);
-                    return;
-                }
-                await runTransaction(playerRef, (cur) => {
-                    if (!cur) return cur;
-                    const pts = typeof cur.points === 'number' ? cur.points : 0;
-                    if (pts < item.price) return;
-                    cur.points = pts - item.price;
-                    cur.unlockedItems = Object.assign({}, cur.unlockedItems, { [item.id]: true });
-                    cur.equippedSound = item.id;
-                    return cur;
-                });
-                playClickSound(0.8, item.id);
-                showToast(`🎉 [${item.name}] 구매 및 적용 완료!`);
-            } else if (category === 'crit') {
-                if ((playerProfile.critTier || 0) >= item.tier) {
-                    showToast('이미 보유 중이거나 더 높은 등급이 적용되어 있습니다!');
-                    return;
-                }
-                if ((playerProfile.points || 0) < item.price) {
-                    showToast(`💰 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points || 0}P)`);
-                    return;
-                }
-                await runTransaction(playerRef, (cur) => {
-                    if (!cur) return cur;
-                    const pts = typeof cur.points === 'number' ? cur.points : 0;
-                    if (pts < item.price) return;
-                    cur.points = pts - item.price;
-                    cur.critTier = Math.max(cur.critTier || 0, item.tier);
-                    cur.unlockedItems = Object.assign({}, cur.unlockedItems, { [item.id]: true });
-                    return cur;
-                });
-                playConquerFanfare();
-                showToast(`⚡ [${item.name}] 영구 적용 완료!`);
-            }
-        }
-
-        function renderShopItems() {
-            const listEl = document.getElementById('shop-items-list');
-            const balEl = document.getElementById('shop-balance-text');
-            if (balEl) balEl.textContent = (playerProfile.points || 0).toLocaleString();
-            if (!listEl) return;
-
-            listEl.innerHTML = '';
-
-            if (activeShopTab === 'cursor') {
-                CURSOR_SHOP_ITEMS.forEach((item) => {
-                    const unlocked = Boolean(playerProfile.unlockedItems && playerProfile.unlockedItems[item.id]);
-                    const equipped = playerProfile.equippedCursor === item.id;
-
-                    const card = document.createElement('div');
-                    card.className = `p-3 rounded-2xl border flex items-center justify-between gap-3 ${equipped ? 'bg-fuchsia-950/50 border-fuchsia-400' : 'bg-slate-800/90 border-slate-700'}`;
-                    card.innerHTML = `
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">${item.previewIcon}</div>
-                            <div class="min-w-0">
-                                <div class="text-xs font-extrabold text-white truncate">${item.name}</div>
-                                <div class="text-[11px] text-slate-400 leading-snug">${item.desc}</div>
-                            </div>
-                        </div>
-                        <button type="button" class="px-3 py-2 rounded-xl font-extrabold text-xs shrink-0 transition cursor-pointer ${
-                            equipped
-                                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50'
-                                : unlocked
-                                    ? 'bg-sky-500 hover:bg-sky-400 text-slate-950'
-                                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                        }">
-                            ${equipped ? '✅ 장착중' : unlocked ? '장착하기' : `💰 ${item.price}P`}
-                        </button>
-                    `;
-                    card.querySelector('button').addEventListener('click', () => handlePurchaseOrEquip('cursor', item));
-                    listEl.appendChild(card);
-                });
-            } else if (activeShopTab === 'sound') {
-                SOUND_SHOP_ITEMS.forEach((item) => {
-                    const unlocked = Boolean(playerProfile.unlockedItems && playerProfile.unlockedItems[item.id]);
-                    const equipped = playerProfile.equippedSound === item.id;
-
-                    const card = document.createElement('div');
-                    card.className = `p-3 rounded-2xl border flex items-center justify-between gap-2.5 ${equipped ? 'bg-fuchsia-950/50 border-fuchsia-400' : 'bg-slate-800/90 border-slate-700'}`;
-                    card.innerHTML = `
-                        <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                            <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">${item.icon}</div>
-                            <div class="min-w-0">
-                                <div class="text-xs font-extrabold text-white truncate">${item.name}</div>
-                                <div class="text-[11px] text-slate-400 leading-snug">${item.desc}</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <button type="button" data-preview="1" title="소리 미리듣기" class="px-2.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs cursor-pointer">
-                                🔊
-                            </button>
-                            <button type="button" data-buy="1" class="px-3 py-2 rounded-xl font-extrabold text-xs transition cursor-pointer ${
-                                equipped
-                                    ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50'
-                                    : unlocked
-                                        ? 'bg-sky-500 hover:bg-sky-400 text-slate-950'
-                                        : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                            }">
-                                ${equipped ? '✅ 적용중' : unlocked ? '적용하기' : `💰 ${item.price}P`}
-                            </button>
-                        </div>
-                    `;
-                    card.querySelector('[data-preview="1"]').addEventListener('click', () => playClickSound(0.75, item.id));
-                    card.querySelector('[data-buy="1"]').addEventListener('click', () => handlePurchaseOrEquip('sound', item));
-                    listEl.appendChild(card);
-                });
-            } else if (activeShopTab === 'crit') {
-                CRIT_SHOP_ITEMS.forEach((item) => {
-                    const ownedOrHigher = (playerProfile.critTier || 0) >= item.tier;
-                    const isCurrentTier = (playerProfile.critTier || 0) === item.tier;
-
-                    const card = document.createElement('div');
-                    card.className = `p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${isCurrentTier ? 'bg-amber-950/40 border-amber-400' : 'bg-slate-800/90 border-slate-700'}`;
-                    card.innerHTML = `
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">${item.icon}</div>
-                            <div class="min-w-0">
-                                <div class="text-xs font-extrabold text-white">${item.name}</div>
-                                <div class="text-[11px] text-slate-400 leading-snug mt-0.5">${item.desc}</div>
-                            </div>
-                        </div>
-                        <button type="button" class="px-3 py-2 rounded-xl font-extrabold text-xs shrink-0 transition cursor-pointer ${
-                            ownedOrHigher
-                                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 cursor-default'
-                                : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                        }">
-                            ${isCurrentTier ? '✅ 적용중' : ownedOrHigher ? '상위보유' : `💰 ${item.price}P`}
-                        </button>
-                    `;
-                    card.querySelector('button').addEventListener('click', () => handlePurchaseOrEquip('crit', item));
-                    listEl.appendChild(card);
-                });
-            }
-        }
-
-        function setupShopModal() {
-            const shopModal = document.getElementById('shop-modal');
-            document.getElementById('btn-open-shop').addEventListener('click', () => {
-                setActiveShopTab(activeShopTab);
-                shopModal.classList.remove('hidden');
-            });
-            document.getElementById('btn-close-shop-modal').addEventListener('click', () => {
-                shopModal.classList.add('hidden');
-            });
-            document.getElementById('shop-tab-cursor').addEventListener('click', () => setActiveShopTab('cursor'));
-            document.getElementById('shop-tab-sound').addEventListener('click', () => setActiveShopTab('sound'));
-            document.getElementById('shop-tab-crit').addEventListener('click', () => setActiveShopTab('crit'));
-        }
-
-        // --- Boot Game ---
-        initMap();
-        setupAuthModal();
-        setupControls();
-        setupGlobalChatControls();
-        listenToFirebase();
+        });
     </script>
 </body>
 </html>
