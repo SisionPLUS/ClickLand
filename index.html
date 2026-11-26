@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-salacble=no">
     <meta name="theme-color" content="#0f172a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -116,6 +116,14 @@
         .btn-pulse {
             animation: pulseGlow 1.8s infinite;
         }
+        /* Custom Cursor Scoped Inside ClickLand Only */
+        body.custom-cursor-active,
+        body.custom-cursor-active #map,
+        body.custom-cursor-active .leaflet-interactive,
+        body.custom-cursor-active button,
+        body.custom-cursor-active select {
+            cursor: var(--clickland-cursor, auto) !important;
+        }
     </style>
 </head>
 <body>
@@ -144,6 +152,8 @@
                         </div>
                         <div class="flex items-center gap-1.5 mt-0.5 text-[11px] sm:text-xs text-slate-300 whitespace-nowrap">
                             <span>내 영토: <strong id="hud-my-count" class="text-emerald-400 text-xs sm:text-sm">0</strong>칸</span>
+                            <span class="text-slate-600">|</span>
+                            <span class="text-amber-300 font-extrabold">💰 <strong id="hud-my-points" class="text-xs sm:text-sm">0</strong>P</span>
                             <button id="btn-jump-my-land" class="px-2 py-0.5 rounded-lg bg-emerald-600/85 hover:bg-emerald-500 text-white font-bold text-[10px] sm:text-[11px] transition cursor-pointer whitespace-nowrap">
                                 내 땅 이동
                             </button>
@@ -152,6 +162,9 @@
                 </div>
 
                 <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                    <button id="btn-open-shop" title="포인트 상점 열기" class="px-2 sm:px-2.5 h-8 sm:h-9 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-400 hover:to-purple-500 text-white font-extrabold text-[11px] sm:text-xs flex items-center justify-center gap-1 transition cursor-pointer shadow whitespace-nowrap">
+                        🛒 상점
+                    </button>
                     <button id="btn-invite-friend" title="친구 초대 문자/링크 공유" class="px-2 sm:px-2.5 h-8 sm:h-9 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px] sm:text-xs flex items-center justify-center gap-1 transition cursor-pointer shadow whitespace-nowrap">
                         📩 초대
                     </button>
@@ -346,6 +359,44 @@
         </div>
     </div>
 
+    <!-- Point Shop Modal -->
+    <div id="shop-modal" class="hidden fixed inset-0 z-[2150] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-slate-900 text-white rounded-3xl p-4 sm:p-6 max-w-md w-full max-h-[88vh] flex flex-col shadow-2xl border-2 border-fuchsia-500/80">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700/80 shrink-0">
+                <div>
+                    <h2 class="font-game text-xl sm:text-2xl text-amber-300 flex items-center gap-1.5">🛒 클릭땅 포인트 상점</h2>
+                    <p class="text-[11px] text-slate-400 mt-0.5">땅을 1칸 점령할 때마다 <strong class="text-emerald-400">+1P</strong> 획득!</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-300 font-extrabold text-xs">
+                        보유: <span id="shop-balance-text">0</span>P
+                    </div>
+                    <button type="button" id="btn-close-shop-modal" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm flex items-center justify-center cursor-pointer">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Shop Category Tabs -->
+            <div class="grid grid-cols-3 gap-1.5 bg-slate-950 p-1 rounded-2xl my-3 border border-slate-800 shrink-0">
+                <button type="button" id="shop-tab-cursor" class="py-2 rounded-xl font-extrabold text-xs bg-fuchsia-600 text-white shadow transition cursor-pointer">
+                    🖱️ 마우스 모양
+                </button>
+                <button type="button" id="shop-tab-sound" class="py-2 rounded-xl font-extrabold text-xs text-slate-400 hover:text-white transition cursor-pointer">
+                    🔊 클릭 소리
+                </button>
+                <button type="button" id="shop-tab-crit" class="py-2 rounded-xl font-extrabold text-xs text-slate-400 hover:text-white transition cursor-pointer">
+                    ⚡ 1.1 / 1.2배
+                </button>
+            </div>
+
+            <!-- Shop Items Container -->
+            <div id="shop-items-list" class="flex-1 overflow-y-auto flex flex-col gap-2.5 pr-1">
+                <!-- Rendered dynamically by JS -->
+            </div>
+        </div>
+    </div>
+
     <!-- Login / Register Modal -->
     <div id="nickname-modal" class="fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white text-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border-4 border-amber-400">
@@ -530,23 +581,141 @@
         let playerProfile = {
             nickname: localStorage.getItem('wc_nickname') || '',
             color: localStorage.getItem('wc_color') || pickRandomColor(),
-            passHash: localStorage.getItem('wc_pass_hash') || ''
+            passHash: localStorage.getItem('wc_pass_hash') || '',
+            points: 0,
+            unlockedItems: {
+                cursor_default: true,
+                sound_default: true
+            },
+            equippedCursor: 'cursor_default',
+            equippedSound: 'sound_default',
+            critTier: 0 // 0: 없음, 1: 1.1배 (10% 확률 2배), 2: 1.2배 (20% 확률 2배)
         };
 
+        // --- Point Shop Catalog (나중에 커서 파일 경로/URL을 cursorUrl에 넣으면 바로 교체 가능!) ---
+        function buildSvgCursorDataUri(svgMarkup, hotX = 4, hotY = 4) {
+            return `url("data:image/svg+xml;utf8,${encodeURIComponent(svgMarkup)}") ${hotX} ${hotY}, auto`;
+        }
+
+        const CURSOR_SHOP_ITEMS = [
+            {
+                id: 'cursor_default',
+                name: '기본 시스템 커서',
+                desc: '기본 브라우저 마우스 포인터입니다.',
+                price: 0,
+                previewIcon: '🖱️',
+                cursorCss: 'auto'
+            },
+            {
+                id: 'cursor_gold_sword',
+                name: '황금 정복자의 검',
+                desc: '클릭땅 지도 위에서만 적용되는 황금빛 검 커서!',
+                price: 80,
+                previewIcon: '🗡️',
+                // 파일 교체 시: cursorUrl: './cursors/gold-sword.png' 형태로 지정 가능
+                cursorUrl: '',
+                cursorCss: buildSvgCursorDataUri(
+                    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M3 3 L14 7 L26 19 L22 23 L10 11 Z" fill="#facc15" stroke="#713f12" stroke-width="2"/><path d="M19 25 L25 19 L28 22 L22 28 Z" fill="#f97316" stroke="#431407" stroke-width="1.5"/><circle cx="27" cy="27" r="2.5" fill="#fde047"/></svg>`,
+                    3, 3
+                )
+            },
+            {
+                id: 'cursor_dia_pickaxe',
+                name: '다이아몬드 개척 곡괭이',
+                desc: '영토를 파헤치는 푸른 다이아몬드 곡괭이 커서!',
+                price: 150,
+                previewIcon: '⛏️',
+                cursorUrl: '',
+                cursorCss: buildSvgCursorDataUri(
+                    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M6 12 Q16 3 26 12 L23 15 Q16 8 9 15 Z" fill="#38bdf8" stroke="#0c4a6e" stroke-width="2"/><path d="M15 9 L17 9 L17 29 L15 29 Z" fill="#b45309" stroke="#451a03" stroke-width="1.5"/></svg>`,
+                    16, 6
+                )
+            },
+            {
+                id: 'cursor_emperor_crown',
+                name: '절대 황제의 왕관 포인터',
+                desc: '최상위 랭커의 품격을 보여주는 황금 왕관 커서!',
+                price: 300,
+                previewIcon: '👑',
+                cursorUrl: '',
+                cursorCss: buildSvgCursorDataUri(
+                    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M4 24 L6 10 L12 16 L16 7 L20 16 L26 10 L28 24 Z" fill="#fbbf24" stroke="#78350f" stroke-width="2"/><circle cx="16" cy="18" r="2.2" fill="#f43f5e"/></svg>`,
+                    16, 8
+                )
+            }
+        ];
+
+        const SOUND_SHOP_ITEMS = [
+            {
+                id: 'sound_default',
+                name: '기본 삼각파 클릭음',
+                desc: '게이지가 차오를수록 음높이가 올라가는 기본 효과음입니다.',
+                price: 0,
+                icon: '🔔'
+            },
+            {
+                id: 'sound_coin',
+                name: '8비트 레트로 코인음',
+                desc: '오락실 동전을 먹는 듯한 경쾌한 8비트 사운드!',
+                price: 50,
+                icon: '🪙'
+            },
+            {
+                id: 'sound_piano',
+                name: '맑은 오르골 피아노음',
+                desc: '광클할 때마다 영롱하게 울리는 감성 피아노 멜로디!',
+                price: 90,
+                icon: '🎹'
+            },
+            {
+                id: 'sound_laser',
+                name: '사이버 레이저 블래스터',
+                desc: '미래형 에너지포로 영토를 점령하는 강렬한 레이저음!',
+                price: 140,
+                icon: '🔫'
+            }
+        ];
+
+        const CRIT_SHOP_ITEMS = [
+            {
+                id: 'crit_1_1',
+                tier: 1,
+                name: '⚡ 1.1배 크리티컬 부스터',
+                desc: '클릭할 때마다 10% 확률로 2배(+2 클릭) 게이지가 차오릅니다!',
+                price: 120,
+                icon: '⚡'
+            },
+            {
+                id: 'crit_1_2',
+                tier: 2,
+                name: '🔥 1.2배 크리티컬 마스터',
+                desc: '클릭할 때마다 20% 확률로 2배(+2 클릭) 게이지가 차오릅니다! (1.1배 효과 대체)',
+                price: 300,
+                icon: '🔥'
+            }
+        ];
+
+        let activeShopTab = 'cursor';
+
+        function applyEquippedCursorStyle() {
+            const item = CURSOR_SHOP_ITEMS.find((c) => c.id === playerProfile.equippedCursor) || CURSOR_SHOP_ITEMS[0];
+            if (!item || item.id === 'cursor_default') {
+                document.body.classList.remove('custom-cursor-active');
+                document.documentElement.style.removeProperty('--clickland-cursor');
+                return;
+            }
+            const resolvedCss = item.cursorUrl
+                ? `url("${item.cursorUrl}") 4 4, auto`
+                : item.cursorCss;
+            document.documentElement.style.setProperty('--clickland-cursor', resolvedCss);
+            document.body.classList.add('custom-cursor-active');
+        }
+
         let soundEnabled = true;
-        let stealAlertEnabled = localStorage.getItem('wc_steal_alert') !== 'false';
         let selectedColor = playerProfile.color;
         let authMode = 'login';
         let territories = {};
         let isInitialSnapshotLoaded = false;
-
-        const INVITE_MESSAGE_TEXT = `요즘 할 게임이 없어? 💩 
-그럼 이 게임을 해봐! 클릭땅!👆
-클릭! 클릭! 누르면서 성장하는 땅따먹기! ⛱️
-회원가입 한번만 해도 바로 즐길 수 있는 게임이야! 🎮
-누구나 언제나 즐길 수 있는 클릭땅! 많이 플레이 해줘! 😀
-서버 주소 👉 https://clickland.netlify.app/ 👈
-보조 주소 👉 http://clickland.kro.kr/ 👈`;
 
         let map;
         let activeTileLayer;
@@ -559,28 +728,29 @@
         let localClickProgress = {};
         let lastValidClickTime = 0;
 
-        // --- Anti-Auto-Clicker Telemetry State (Human Jitter-Click Friendly + Anti-Enter/Macro) ---
-        const IDENTICAL_INTERVAL_TOLERANCE_MS = 4;
-        const IDENTICAL_INTERVAL_LIMIT = 18;
-        const MAX_HUMAN_CPS = 20;
-        let baseIntervalMs = null;
-        let identicalIntervalStreak = 0;
-        let recentClickTimestamps = [];
-        let isMacroLocked = false;
-        let macroWarningCount = 0;
-        let currentHardHangul = '찋쉡틓녲';
+        let stealAlertEnabled = localStorage.getItem('wc_steal_alert') !== 'false';
+        const INVITE_MESSAGE_TEXT = `🌍 실시간 전 세계 5m×5m 땅따먹기 게임 [클릭땅(ClickLand)] 같이 하자!\n👉 https://clickland.netlify.app/`;
 
         let lastConquerCompletedAt = 0;
         let rapidSwitchStreak = 0;
-        let pointerMoveCountSinceLastClick = 0;
-        let teleportClickStreak = 0;
+
+        // --- Anti-Auto-Clicker Telemetry State ---
+        const IDENTICAL_INTERVAL_TOLERANCE_MS = 4;
+        const IDENTICAL_INTERVAL_LIMIT = 22;
+        const MAX_HUMAN_CPS = 20;
+        let baseIntervalMs = null;
+        let identicalIntervalStreak = 0;
+        let isMacroLocked = false;
+        let macroWarningCount = 0;
+        let currentHardHangul = '찋쉡틓녲';
+        let recentClickTimestamps = [];
         let lastClickCoord = null;
         let stationaryClickStreak = 0;
+        let pointerMoveCountSinceLastClick = 0;
+        let teleportClickStreak = 0;
 
-        document.addEventListener('pointermove', (e) => {
-            if (e.isTrusted) {
-                pointerMoveCountSinceLastClick++;
-            }
+        window.addEventListener('pointermove', () => {
+            pointerMoveCountSinceLastClick++;
         }, { passive: true });
 
         // --- Human-Readable Device & OS Descriptor ---
@@ -618,18 +788,18 @@
             const build = parts[2] || 0;
 
             if (major >= 13) {
-                if (build >= 26200) return 'Windows 11 (25H2)';
-                if (build >= 26100) return 'Windows 11 (24H2)';
-                if (build >= 22631) return 'Windows 11 (23H2)';
-                if (build >= 22621) return 'Windows 11 (22H2)';
-                return 'Windows 11';
+                if (build >= 26200) return 'Windows11(25H2)';
+                if (build >= 26100) return 'Windows11(24H2)';
+                if (build >= 22631) return 'Windows11(23H2)';
+                if (build >= 22621) return 'Windows11(22H2)';
+                return 'Windows11';
             }
             if (major >= 1) {
-                if (build >= 19045) return 'Windows 10 (22H2)';
-                if (build >= 19044) return 'Windows 10 (21H2)';
-                if (build >= 19043) return 'Windows 10 (21H1)';
-                if (build >= 19042) return 'Windows 10 (20H2)';
-                return 'Windows 10';
+                if (build >= 19045) return 'Windows10(22H2)';
+                if (build >= 19044) return 'Windows10(21H2)';
+                if (build >= 19043) return 'Windows10(21H1)';
+                if (build >= 19042) return 'Windows10(20H2)';
+                return 'Windows10';
             }
             return 'Windows';
         }
@@ -671,40 +841,39 @@
                 const isPad = /iPad/i.test(ua);
                 const iosMatch = ua.match(/OS\s+([0-9_]+)/i);
                 const iosVer = iosMatch ? iosMatch[1].replace(/_/g, '.') : '';
-                const deviceName = isPad ? 'iPad' : 'iPhone';
-                const osPrefix = isPad ? 'iPadOS' : 'iOS';
-                return iosVer ? `${deviceName}(${osPrefix}${iosVer})` : `${deviceName}(${osPrefix})`;
+                const appleName = isPad ? 'iPad' : 'iPhone';
+                return iosVer ? `${appleName}(iOS${iosVer})` : `${appleName}(iOS)`;
             }
 
             if (/Windows/i.test(ua) || platform.toLowerCase() === 'windows') {
                 if (platformVersion) {
-                    return mapWindowsBuildToRelease(platformVersion).replace(/\s+/g, '');
+                    return mapWindowsBuildToRelease(platformVersion);
                 }
-                if (/Windows NT 10\.0/i.test(ua)) {
-                    return 'Windows10/11';
-                }
+                if (/Windows NT 10\.0/i.test(ua)) return 'Windows10/11';
                 return 'Windows';
             }
 
-            if (/Macintosh|Mac OS X/i.test(ua) || platform.toLowerCase() === 'macos') {
-                const macVer = platformVersion || ((ua.match(/Mac OS X\s+([0-9_]+)/i) || [])[1] || '').replace(/_/g, '.');
+            if (/Mac OS X|Macintosh/i.test(ua) || platform.toLowerCase() === 'macos') {
+                const macMatch = ua.match(/Mac OS X\s+([0-9_]+)/i);
+                const macVer = macMatch ? macMatch[1].replace(/_/g, '.') : '';
                 return macVer ? `Mac(macOS${macVer})` : 'Mac(macOS)';
             }
 
-            return platform || 'UnknownDevice';
+            return 'UnknownDevice';
         }
 
         async function fetchClientPublicIp() {
             try {
                 const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 3000);
+                const timer = setTimeout(() => controller.abort(), 3500);
                 const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                clearTimeout(timeout);
-                const data = await res.json();
-                return data.ip || 'unknown';
-            } catch (e) {
-                return 'unknown';
-            }
+                clearTimeout(timer);
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.ip) return json.ip;
+                }
+            } catch (e) {}
+            return 'unknown';
         }
 
         async function recordClientDeviceAndIp(nickname) {
@@ -879,37 +1048,68 @@
             } catch (e) {}
         }
 
-        function playClickSound(progressRatio) {
-            const pitch = 320 + Math.min(progressRatio, 1) * 420;
-            playTone(pitch, 'triangle', 0.07, 0.14);
+        function playClickSound(progressRatio, soundOverride = null) {
+            const mode = soundOverride || playerProfile.equippedSound || 'sound_default';
+            const ratio = Math.min(progressRatio, 1);
+
+            if (mode === 'sound_coin') {
+                const base = 780 + ratio * 260;
+                playTone(base, 'square', 0.05, 0.11);
+                setTimeout(() => playTone(base * 1.25, 'square', 0.08, 0.11), 35);
+            } else if (mode === 'sound_piano') {
+                const scale = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
+                const note = scale[Math.min(scale.length - 1, Math.floor(ratio * scale.length))];
+                playTone(note, 'sine', 0.14, 0.18);
+            } else if (mode === 'sound_laser') {
+                if (!soundEnabled) return;
+                try {
+                    if (!audioCtx) audioCtx = new AudioCtx();
+                    if (audioCtx.state === 'suspended') audioCtx.resume();
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    const startFreq = 620 + ratio * 380;
+                    osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(160, audioCtx.currentTime + 0.09);
+                    gain.gain.setValueAtTime(0.13, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.09);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.09);
+                } catch (e) {}
+            } else {
+                const pitch = 320 + ratio * 420;
+                playTone(pitch, 'triangle', 0.07, 0.14);
+            }
         }
 
         function playConquerFanfare() {
-            if (!soundEnabled) return;
-            const notes = [523.25, 659.25, 783.99, 1046.50];
-            notes.forEach((n, idx) => {
-                setTimeout(() => playTone(n, 'sine', 0.18, 0.18), idx * 75);
-            });
+            playTone(523.25, 'sine', 0.12, 0.18);
+            setTimeout(() => playTone(659.25, 'sine', 0.12, 0.18), 90);
+            setTimeout(() => playTone(783.99, 'sine', 0.14, 0.18), 180);
+            setTimeout(() => playTone(1046.5, 'triangle', 0.28, 0.22), 270);
         }
 
-        // --- 4. 5m × 5m Grid Math ---
-        const LAT_STEP = 0.000045;
+        // --- 4. 5m × 5m Grid Math & Landmark / Siege Pricing ---
+        const LAT_STEP = 0.000045; // 약 5.00m 위도 간격 (기존 Firebase 좌표와 100% 일치)
 
         function getLngStep(lat) {
             const cosLat = Math.max(0.15, Math.cos((lat * Math.PI) / 180));
             return LAT_STEP / cosLat;
         }
 
-        function getCellFromLatLng(lat, lng) {
+        function latLngToGridCell(lat, lng) {
             const row = Math.floor(lat / LAT_STEP);
+            const cellCenterLat = (row + 0.5) * LAT_STEP;
+            const lngStep = getLngStep(cellCenterLat);
+            const col = Math.floor(lng / lngStep);
+
             const south = row * LAT_STEP;
             const north = (row + 1) * LAT_STEP;
-            const centerLat = (south + north) / 2;
-
-            const lngStep = getLngStep(centerLat);
-            const col = Math.floor(lng / lngStep);
             const west = col * lngStep;
             const east = (col + 1) * lngStep;
+            const centerLat = (south + north) / 2;
             const centerLng = (west + east) / 2;
 
             return {
@@ -923,24 +1123,6 @@
                 centerLat,
                 centerLng
             };
-        }
-
-        function getCellFromId(cellId) {
-            const parts = cellId.split('_');
-            if (parts.length !== 2) return null;
-            const row = parseInt(parts[0], 10);
-            const col = parseInt(parts[1], 10);
-            if (Number.isNaN(row) || Number.isNaN(col)) return null;
-
-            const south = row * LAT_STEP;
-            const north = (row + 1) * LAT_STEP;
-            const centerLat = (south + north) / 2;
-            const lngStep = getLngStep(centerLat);
-            const west = col * lngStep;
-            const east = (col + 1) * lngStep;
-            const centerLng = (west + east) / 2;
-
-            return { id: cellId, row, col, south, north, west, east, centerLat, centerLng };
         }
 
         function haversineMeters(lat1, lng1, lat2, lng2) {
@@ -966,38 +1148,33 @@
         }
 
         function getRequiredClicksForCell(cell) {
-            const lm = getLandmarkInfo(cell.centerLat, cell.centerLng);
-            const baseClicks = lm ? lm.baseClicks : 50;
+            const landmark = getLandmarkInfo(cell.centerLat, cell.centerLng);
+            const baseClicks = landmark ? landmark.baseClicks : 50;
             const existing = territories[cell.id];
-            const conquerCount = existing && typeof existing.conquerCount === 'number' ? existing.conquerCount : 0;
+            const conquerCount = existing && typeof existing.conquerCount === 'number' ? existing.conquerCount : (existing ? 1 : 0);
             const siegeBonus = conquerCount * SIEGE_INCREMENT_CLICKS;
-            return {
-                totalRequired: baseClicks + siegeBonus,
-                baseClicks,
-                conquerCount,
-                siegeBonus,
-                landmark: lm
-            };
+            const totalRequired = baseClicks + siegeBonus;
+            return { baseClicks, conquerCount, siegeBonus, totalRequired, landmark };
         }
 
-        // --- 5. Map & Layer Rendering (Google Maps Street + Esri Satellite) ---
+        // --- 5. Map Initialization & Viewport Rendering ---
         function createBaseTileLayer(satellite) {
             if (satellite) {
                 return L.tileLayer(
                     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                     {
-                        attribution: 'Tiles &copy; Esri',
                         maxNativeZoom: 18,
-                        maxZoom: 22
+                        maxZoom: 22,
+                        attribution: 'Tiles &copy; Esri'
                     }
                 );
             }
             return L.tileLayer(
                 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
                 {
-                    attribution: '&copy; Google Maps',
                     maxNativeZoom: 20,
-                    maxZoom: 22
+                    maxZoom: 22,
+                    attribution: '&copy; Google Maps'
                 }
             );
         }
@@ -1012,184 +1189,256 @@
             });
 
             L.control.zoom({ position: 'bottomright' }).addTo(map);
-
             activeTileLayer = createBaseTileLayer(false).addTo(map);
-
-            document.getElementById('btn-toggle-map-style').addEventListener('click', () => {
-                if (activeTileLayer && map.hasLayer(activeTileLayer)) {
-                    map.removeLayer(activeTileLayer);
-                }
-                isSatelliteMode = !isSatelliteMode;
-                activeTileLayer = createBaseTileLayer(isSatelliteMode).addTo(map);
-                document.getElementById('map-style-label').textContent = isSatelliteMode ? '일반' : '위성';
-                showToast(isSatelliteMode ? '위성 지도로 전환했습니다.' : '일반 구글 지도로 전환했습니다.');
-            });
 
             ownedLayerGroup = L.layerGroup().addTo(map);
             gridLayerGroup = L.layerGroup().addTo(map);
 
-            map.on('click', (e) => {
-                const zoom = map.getZoom();
-                if (zoom < GRID_MIN_ZOOM) {
-                    map.setView(e.latlng, 19, { animate: true });
-                    showToast('5m × 5m 격자를 표시하기 위해 자동 확대했습니다!');
-                    return;
-                }
-                const cell = getCellFromLatLng(e.latlng.lat, e.latlng.lng);
-                handleCellInteraction(cell);
+            map.on('moveend zoomend', () => {
+                updateZoomHUD();
+                scheduleMapRender();
             });
 
-            map.on('moveend zoomend', scheduleMapRender);
+            updateZoomHUD();
             scheduleMapRender();
+        }
+
+        function updateZoomHUD() {
+            if (!map) return;
+            const zoom = map.getZoom();
+            const badge = document.getElementById('hud-zoom-badge');
+            if (badge) badge.textContent = `줌 ${zoom}`;
+
+            const promptBanner = document.getElementById('zoom-prompt-banner');
+            if (promptBanner) {
+                if (zoom < GRID_MIN_ZOOM) {
+                    promptBanner.classList.remove('hidden');
+                } else {
+                    promptBanner.classList.add('hidden');
+                }
+            }
         }
 
         function scheduleMapRender() {
             if (renderDebounceTimer) clearTimeout(renderDebounceTimer);
-            renderDebounceTimer = setTimeout(renderMapLayers, 60);
+            renderDebounceTimer = setTimeout(() => {
+                renderViewportGridAndTerritories();
+            }, 60);
         }
 
-        function renderMapLayers() {
+        function buildTerritoryClusters(visibleOwnedEntries) {
+            const cellMap = new Map();
+            visibleOwnedEntries.forEach(([id, data]) => {
+                const parts = id.split('_');
+                if (parts.length === 2) {
+                    cellMap.set(id, {
+                        id,
+                        row: parseInt(parts[0], 10),
+                        col: parseInt(parts[1], 10),
+                        data
+                    });
+                }
+            });
+
+            const visited = new Set();
+            const clusters = [];
+
+            for (const [id, node] of cellMap.entries()) {
+                if (visited.has(id)) continue;
+                const queue = [node];
+                visited.add(id);
+                const members = [];
+
+                while (queue.length > 0) {
+                    const curr = queue.shift();
+                    members.push(curr);
+
+                    const neighbors = [
+                        `${curr.row + 1}_${curr.col}`,
+                        `${curr.row - 1}_${curr.col}`,
+                        `${curr.row}_${curr.col + 1}`,
+                        `${curr.row}_${curr.col - 1}`
+                    ];
+
+                    for (const nId of neighbors) {
+                        if (!visited.has(nId) && cellMap.has(nId)) {
+                            const neighborNode = cellMap.get(nId);
+                            if (neighborNode.data.owner === node.data.owner) {
+                                visited.add(nId);
+                                queue.push(neighborNode);
+                            }
+                        }
+                    }
+                }
+
+                let sumLat = 0;
+                let sumLng = 0;
+                members.forEach(m => {
+                    sumLat += m.data.lat;
+                    sumLng += m.data.lng;
+                });
+                const avgLat = sumLat / members.length;
+                const avgLng = sumLng / members.length;
+
+                let anchor = members[0];
+                let minDist = Infinity;
+                members.forEach(m => {
+                    const d = Math.hypot(m.data.lat - avgLat, m.data.lng - avgLng);
+                    if (d < minDist) {
+                        minDist = d;
+                        anchor = m;
+                    }
+                });
+
+                clusters.push({
+                    owner: node.data.owner,
+                    count: members.length,
+                    anchorId: anchor.id
+                });
+            }
+
+            const anchorLookup = new Map();
+            clusters.forEach(c => {
+                anchorLookup.set(c.anchorId, c);
+            });
+            return anchorLookup;
+        }
+
+        function renderViewportGridAndTerritories() {
             if (!map) return;
+            gridLayerGroup.clearLayers();
+            ownedLayerGroup.clearLayers();
+
             const zoom = map.getZoom();
             const bounds = map.getBounds();
             const padBounds = bounds.pad(0.15);
 
-            document.getElementById('hud-zoom-badge').textContent = `줌 ${zoom}`;
-
-            const zoomBanner = document.getElementById('zoom-prompt-banner');
-            if (zoom < GRID_MIN_ZOOM) {
-                zoomBanner.classList.remove('hidden');
-            } else {
-                zoomBanner.classList.add('hidden');
-            }
-
-            ownedLayerGroup.clearLayers();
-            gridLayerGroup.clearLayers();
-
-            const southBound = bounds.getSouth();
-            const northBound = bounds.getNorth();
-            const westBound = bounds.getWest();
-            const eastBound = bounds.getEast();
-
-            Object.entries(territories).forEach(([cellId, data]) => {
-                if (!data || !data.owner) return;
-                const cell = (typeof data.lat === 'number' && typeof data.lng === 'number')
-                    ? getCellFromLatLng(data.lat, data.lng)
-                    : getCellFromId(cellId);
-                if (!cell) return;
-
-                if (!padBounds.contains([cell.centerLat, cell.centerLng])) {
-                    return;
+            // 1) 점령된 영토 렌더링 (줌 17 미만 축소 시 동그란 점, 줌 17 이상 시 5m×5m 사각형)
+            const visibleOwned = [];
+            Object.entries(territories).forEach(([id, data]) => {
+                if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') return;
+                if (padBounds.contains([data.lat, data.lng])) {
+                    visibleOwned.push([id, data]);
                 }
+            });
 
+            const showLabels = zoom >= LABEL_MIN_ZOOM;
+            const anchorLookup = showLabels ? buildTerritoryClusters(visibleOwned) : new Map();
+
+            visibleOwned.forEach(([id, data]) => {
                 if (zoom >= GRID_MIN_ZOOM) {
-                    const isSelected = selectedCell && selectedCell.id === cell.id;
+                    const cell = latLngToGridCell(data.lat, data.lng);
+                    cell.id = id;
+                    const isSelected = selectedCell && selectedCell.id === id;
                     const rect = L.rectangle(
-                        [[cell.south, cell.west], [cell.north, cell.east]],
+                        [
+                            [cell.south, cell.west],
+                            [cell.north, cell.east]
+                        ],
                         {
                             color: isSelected ? '#fde047' : '#ffffff',
                             weight: isSelected ? 3 : 1.5,
                             fillColor: data.color || '#ef4444',
-                            fillOpacity: 0.72,
-                            interactive: true
+                            fillOpacity: 0.72
                         }
-                    );
+                    ).addTo(ownedLayerGroup);
+
+                    const cluster = anchorLookup.get(id);
+                    if (showLabels && cluster) {
+                        const labelText = cluster.count > 1
+                            ? `${escapeHtml(cluster.owner)}의 땅! (${cluster.count}칸)`
+                            : `${escapeHtml(cluster.owner)}의 땅!`;
+                        rect.bindTooltip(labelText, {
+                            permanent: true,
+                            direction: 'top',
+                            offset: [0, -4],
+                            className: 'territory-label'
+                        });
+                    }
 
                     rect.on('click', (e) => {
                         L.DomEvent.stopPropagation(e);
                         handleCellInteraction(cell);
                     });
-
-                    if (zoom >= LABEL_MIN_ZOOM) {
-                        rect.bindTooltip(`${data.owner}의 땅!`, {
-                            permanent: true,
-                            direction: 'top',
-                            className: 'territory-label',
-                            offset: [0, -2]
-                        });
-                    }
-
-                    ownedLayerGroup.addLayer(rect);
                 } else {
-                    const dotRadius = zoom >= 14 ? 7 : zoom >= 10 ? 5.5 : 4.5;
-                    const marker = L.circleMarker([cell.centerLat, cell.centerLng], {
-                        radius: dotRadius,
+                    const marker = L.circleMarker([data.lat, data.lng], {
+                        radius: 6,
                         color: '#ffffff',
                         weight: 1.5,
                         fillColor: data.color || '#ef4444',
-                        fillOpacity: 0.92,
-                        interactive: true
-                    });
+                        fillOpacity: 0.92
+                    }).addTo(ownedLayerGroup);
 
-                    marker.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        map.setView([cell.centerLat, cell.centerLng], 22, { animate: true });
+                    marker.on('click', () => {
+                        map.setView([data.lat, data.lng], 19);
                     });
-
-                    ownedLayerGroup.addLayer(marker);
                 }
             });
 
+            // 2) 줌 17 이상일 때만 5m × 5m 빈 격자 렌더링
             if (zoom < GRID_MIN_ZOOM) return;
 
-            const startRow = Math.floor(southBound / LAT_STEP);
-            const endRow = Math.floor(northBound / LAT_STEP);
-            const midLat = (southBound + northBound) / 2;
+            const south = bounds.getSouth();
+            const north = bounds.getNorth();
+            const west = bounds.getWest();
+            const east = bounds.getEast();
+
+            const minRow = Math.floor(south / LAT_STEP);
+            const maxRow = Math.floor(north / LAT_STEP);
+            const midLat = (south + north) / 2;
             const lngStep = getLngStep(midLat);
-            const startCol = Math.floor(westBound / lngStep);
-            const endCol = Math.floor(eastBound / lngStep);
+            const minCol = Math.floor(west / lngStep);
+            const maxCol = Math.floor(east / lngStep);
 
-            const totalCells = (endRow - startRow + 1) * (endCol - startCol + 1);
-            if (totalCells > MAX_RENDERED_CELLS) {
-                return;
-            }
+            const totalCells = (maxRow - minRow + 1) * (maxCol - minCol + 1);
+            if (totalCells > MAX_RENDERED_CELLS) return;
 
-            for (let r = startRow; r <= endRow; r++) {
-                const s = r * LAT_STEP;
-                const n = (r + 1) * LAT_STEP;
-                const cLat = (s + n) / 2;
-                const stepL = getLngStep(cLat);
-                const cStart = Math.floor(westBound / stepL);
-                const cEnd = Math.floor(eastBound / stepL);
+            for (let r = minRow; r <= maxRow; r++) {
+                const cellSouth = r * LAT_STEP;
+                const cellNorth = (r + 1) * LAT_STEP;
+                const cLat = (cellSouth + cellNorth) / 2;
+                const rowLngStep = getLngStep(cLat);
+                const rMinCol = Math.floor(west / rowLngStep);
+                const rMaxCol = Math.floor(east / rowLngStep);
 
-                for (let c = cStart; c <= cEnd; c++) {
+                for (let c = rMinCol; c <= rMaxCol; c++) {
                     const cellId = `${r}_${c}`;
-                    const w = c * stepL;
-                    const e = (c + 1) * stepL;
-                    const isSelected = selectedCell && selectedCell.id === cellId;
+                    if (territories[cellId]) continue;
 
-                    if (territories[cellId] && !isSelected) continue;
-
+                    const cellWest = c * rowLngStep;
+                    const cellEast = (c + 1) * rowLngStep;
                     const cellObj = {
                         id: cellId,
                         row: r,
                         col: c,
-                        south: s,
-                        north: n,
-                        west: w,
-                        east: e,
+                        south: cellSouth,
+                        north: cellNorth,
+                        west: cellWest,
+                        east: cellEast,
                         centerLat: cLat,
-                        centerLng: (w + e) / 2
+                        centerLng: (cellWest + cellEast) / 2
                     };
 
-                    const gridRect = L.rectangle(
-                        [[s, w], [n, e]],
-                        {
-                            color: isSelected ? '#fbbf24' : '#334155',
-                            weight: isSelected ? 3 : 0.7,
-                            opacity: isSelected ? 1 : 0.32,
-                            fillColor: isSelected ? '#fbbf24' : '#ffffff',
-                            fillOpacity: isSelected ? 0.25 : 0.01,
-                            interactive: true
-                        }
-                    );
+                    const isSelected = selectedCell && selectedCell.id === cellId;
+                    const isLandmark = Boolean(getLandmarkInfo(cellObj.centerLat, cellObj.centerLng));
 
-                    gridRect.on('click', (ev) => {
-                        L.DomEvent.stopPropagation(ev);
+                    const rect = L.rectangle(
+                        [
+                            [cellSouth, cellWest],
+                            [cellNorth, cellEast]
+                        ],
+                        {
+                            color: isSelected ? '#f59e0b' : (isLandmark ? 'rgba(168, 85, 247, 0.45)' : 'rgba(15, 23, 42, 0.25)'),
+                            weight: isSelected ? 2.5 : 1,
+                            fillColor: isSelected ? '#fbbf24' : (isLandmark ? '#a855f7' : '#ffffff'),
+                            fillOpacity: isSelected ? 0.35 : (isLandmark ? 0.12 : 0.04)
+                        }
+                    ).addTo(gridLayerGroup);
+
+                    rect.on('click', (e) => {
+                        L.DomEvent.stopPropagation(e);
                         handleCellInteraction(cellObj);
                     });
-
-                    gridLayerGroup.addLayer(gridRect);
                 }
             }
         }
@@ -1419,12 +1668,22 @@
                         }
 
                         const accountColor = accountData.color || pickRandomColor();
-                        playerProfile = { nickname: nick, color: accountColor, passHash };
+                        playerProfile = {
+                            nickname: nick,
+                            color: accountColor,
+                            passHash,
+                            points: typeof accountData.points === 'number' ? accountData.points : 0,
+                            unlockedItems: Object.assign({ cursor_default: true, sound_default: true }, accountData.unlockedItems || {}),
+                            equippedCursor: accountData.equippedCursor || 'cursor_default',
+                            equippedSound: accountData.equippedSound || 'sound_default',
+                            critTier: typeof accountData.critTier === 'number' ? accountData.critTier : 0
+                        };
                         localStorage.setItem('wc_nickname', nick);
                         localStorage.setItem('wc_color', accountColor);
                         localStorage.setItem('wc_pass_hash', passHash);
 
                         recordClientDeviceAndIp(nick);
+                        applyEquippedCursorStyle();
                         updateHudProfile();
                         updateLeaderboardAndStats();
                         modal.classList.add('hidden');
@@ -1447,6 +1706,11 @@
             avatar.textContent = nick.charAt(0).toUpperCase();
             avatar.style.backgroundColor = playerProfile.color;
 
+            const ptsEl = document.getElementById('hud-my-points');
+            if (ptsEl) ptsEl.textContent = (playerProfile.points || 0).toLocaleString();
+            const shopBalEl = document.getElementById('shop-balance-text');
+            if (shopBalEl) shopBalEl.textContent = (playerProfile.points || 0).toLocaleString();
+
             const adminBadge = document.getElementById('chat-admin-badge');
             const chatInput = document.getElementById('chat-input');
             if (nick === ADMIN_NICKNAME) {
@@ -1460,6 +1724,23 @@
 
         // --- 7. Firebase Realtime Listeners ---
         function listenToFirebase() {
+            if (playerProfile.nickname) {
+                onValue(ref(db, `players/${playerProfile.nickname}`), (snap) => {
+                    const data = snap.val();
+                    if (!data) return;
+                    playerProfile.points = typeof data.points === 'number' ? data.points : 0;
+                    playerProfile.unlockedItems = Object.assign({ cursor_default: true, sound_default: true }, data.unlockedItems || {});
+                    playerProfile.equippedCursor = data.equippedCursor || 'cursor_default';
+                    playerProfile.equippedSound = data.equippedSound || 'sound_default';
+                    playerProfile.critTier = typeof data.critTier === 'number' ? data.critTier : 0;
+
+                    applyEquippedCursorStyle();
+                    updateHudProfile();
+                    if (!document.getElementById('shop-modal').classList.contains('hidden')) {
+                        renderShopItems();
+                    }
+                });
+            }
             const connectedRef = ref(db, '.info/connected');
             onValue(connectedRef, (snap) => {
                 const badge = document.getElementById('server-status-badge');
@@ -1946,10 +2227,16 @@
                     timestamp: Date.now()
                 });
 
+                // 땅 점령 시 1P 지급
+                if (playerProfile.nickname) {
+                    const ptsRef = ref(db, `players/${playerProfile.nickname}/points`);
+                    await runTransaction(ptsRef, (cur) => (typeof cur === 'number' ? cur : 0) + 1);
+                }
+
                 localClickProgress[cell.id] = 0;
                 lastConquerCompletedAt = Date.now();
                 playConquerFanfare();
-                showToast(`🎉 [${cell.id}] 구역을 점령했습니다!`);
+                showToast(`🎉 [${cell.id}] 구역 점령 완료! (+1P 획득 💰)`);
             } catch (err) {
                 console.error('Claim transaction failed:', err);
                 showToast('서버 저장 중 오류가 발생했습니다. 다시 시도해 주세요.');
@@ -2008,14 +2295,22 @@
                 if (!verifyHumanClick(e)) return;
 
                 const req = getRequiredClicksForCell(selectedCell);
-                const nextCount = (localClickProgress[selectedCell.id] || 0) + 1;
+                // 1.1배(10% 확률 2배) / 1.2배(20% 확률 2배) 크리티컬 판정
+                const critChance = playerProfile.critTier === 2 ? 0.20 : (playerProfile.critTier === 1 ? 0.10 : 0);
+                const isCrit = critChance > 0 && Math.random() < critChance;
+                const clickGain = isCrit ? 2 : 1;
+
+                const nextCount = (localClickProgress[selectedCell.id] || 0) + clickGain;
                 localClickProgress[selectedCell.id] = nextCount;
 
                 const rect = btnClick.getBoundingClientRect();
                 const cx = e.clientX || rect.left + rect.width / 2;
                 const cy = e.clientY || rect.top;
-                spawnFloatingClickText(cx, cy, '+1 👆');
+                spawnFloatingClickText(cx, cy, isCrit ? '💥 크리티컬 +2!' : '+1 👆');
                 playClickSound(nextCount / req.totalRequired);
+                if (isCrit) {
+                    setTimeout(() => playTone(980, 'sine', 0.08, 0.15), 35);
+                }
 
                 updateProgressBarUI(nextCount, req.totalRequired);
 
@@ -2097,6 +2392,16 @@
                 showToast(soundEnabled ? '효과음을 켰습니다.' : '효과음을 껐습니다.');
             });
 
+            document.getElementById('btn-toggle-map-style').addEventListener('click', () => {
+                isSatelliteMode = !isSatelliteMode;
+                if (activeTileLayer && map.hasLayer(activeTileLayer)) {
+                    map.removeLayer(activeTileLayer);
+                }
+                activeTileLayer = createBaseTileLayer(isSatelliteMode).addTo(map);
+                document.getElementById('map-style-label').textContent = isSatelliteMode ? '일반' : '위성';
+                showToast(isSatelliteMode ? '🛰️ 고해상도 위성지도로 전환했습니다.' : '🗺️ 일반 도로 지도로 전환했습니다.');
+            });
+
             document.getElementById('btn-invite-friend').addEventListener('click', () => {
                 shareOrCopyInviteMessage();
             });
@@ -2139,36 +2444,219 @@
                 document.getElementById('nickname-modal').classList.remove('hidden');
             });
 
-            document.getElementById('macro-captcha-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const input1 = document.getElementById('input-macro-captcha-1').value.trim().toLowerCase();
-                const input2 = document.getElementById('input-macro-captcha-2').value.trim();
-                const input3 = document.getElementById('input-macro-captcha-3').value.trim();
-                const errEl = document.getElementById('macro-captcha-error');
+            setupShopModal();
+        }
 
-                const passStage1 = input1 === 'imnoauto';
-                const passStage2 = macroWarningCount < 3 || input2 === '나는 오토가 아닙니다';
-                const passStage3 = macroWarningCount <= 5 || input3 === currentHardHangul;
-
-                if (passStage1 && passStage2 && passStage3) {
-                    isMacroLocked = false;
-                    identicalIntervalStreak = 0;
-                    teleportClickStreak = 0;
-                    stationaryClickStreak = 0;
-                    lastClickCoord = null;
-                    rapidSwitchStreak = 0;
-                    recentClickTimestamps = [];
-                    baseIntervalMs = null;
-                    lastValidClickTime = 0;
-                    errEl.classList.add('hidden');
-                    document.getElementById('macro-captcha-modal').classList.add('hidden');
-                    playTone(660, 'sine', 0.14, 0.18);
-                    showToast('✅ 인증 완료! 다시 점령을 계속할 수 있습니다.');
+        // --- 11. Point Shop Logic ---
+        function setActiveShopTab(tabName) {
+            activeShopTab = tabName;
+            const tabs = [
+                { id: 'shop-tab-cursor', key: 'cursor' },
+                { id: 'shop-tab-sound', key: 'sound' },
+                { id: 'shop-tab-crit', key: 'crit' }
+            ];
+            tabs.forEach((t) => {
+                const el = document.getElementById(t.id);
+                if (!el) return;
+                if (t.key === tabName) {
+                    el.className = 'py-2 rounded-xl font-extrabold text-xs bg-fuchsia-600 text-white shadow transition cursor-pointer';
                 } else {
-                    errEl.classList.remove('hidden');
-                    playTone(180, 'sawtooth', 0.18, 0.18);
+                    el.className = 'py-2 rounded-xl font-extrabold text-xs text-slate-400 hover:text-white transition cursor-pointer';
                 }
             });
+            renderShopItems();
+        }
+
+        async function handlePurchaseOrEquip(category, item) {
+            if (!playerProfile.nickname) {
+                showToast('로그인 후 상점을 이용할 수 있습니다.');
+                return;
+            }
+            const playerRef = ref(db, `players/${playerProfile.nickname}`);
+            const isUnlocked = Boolean(playerProfile.unlockedItems && playerProfile.unlockedItems[item.id]);
+
+            if (category === 'cursor') {
+                if (isUnlocked) {
+                    await update(playerRef, { equippedCursor: item.id });
+                    playerProfile.equippedCursor = item.id;
+                    applyEquippedCursorStyle();
+                    renderShopItems();
+                    showToast(`🖱️ [${item.name}] 커서를 장착했습니다!`);
+                    return;
+                }
+                if ((playerProfile.points || 0) < item.price) {
+                    showToast(`💰 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points || 0}P)`);
+                    return;
+                }
+                await runTransaction(playerRef, (cur) => {
+                    if (!cur) return cur;
+                    const pts = typeof cur.points === 'number' ? cur.points : 0;
+                    if (pts < item.price) return;
+                    cur.points = pts - item.price;
+                    cur.unlockedItems = Object.assign({}, cur.unlockedItems, { [item.id]: true });
+                    cur.equippedCursor = item.id;
+                    return cur;
+                });
+                playConquerFanfare();
+                showToast(`🎉 [${item.name}] 구매 및 장착 완료!`);
+            } else if (category === 'sound') {
+                if (isUnlocked) {
+                    await update(playerRef, { equippedSound: item.id });
+                    playerProfile.equippedSound = item.id;
+                    playClickSound(0.75, item.id);
+                    renderShopItems();
+                    showToast(`🔊 [${item.name}] 효과음을 적용했습니다!`);
+                    return;
+                }
+                if ((playerProfile.points || 0) < item.price) {
+                    showToast(`💰 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points || 0}P)`);
+                    return;
+                }
+                await runTransaction(playerRef, (cur) => {
+                    if (!cur) return cur;
+                    const pts = typeof cur.points === 'number' ? cur.points : 0;
+                    if (pts < item.price) return;
+                    cur.points = pts - item.price;
+                    cur.unlockedItems = Object.assign({}, cur.unlockedItems, { [item.id]: true });
+                    cur.equippedSound = item.id;
+                    return cur;
+                });
+                playClickSound(0.8, item.id);
+                showToast(`🎉 [${item.name}] 구매 및 적용 완료!`);
+            } else if (category === 'crit') {
+                if ((playerProfile.critTier || 0) >= item.tier) {
+                    showToast('이미 보유 중이거나 더 높은 등급이 적용되어 있습니다!');
+                    return;
+                }
+                if ((playerProfile.points || 0) < item.price) {
+                    showToast(`💰 포인트가 부족합니다! (필요: ${item.price}P / 보유: ${playerProfile.points || 0}P)`);
+                    return;
+                }
+                await runTransaction(playerRef, (cur) => {
+                    if (!cur) return cur;
+                    const pts = typeof cur.points === 'number' ? cur.points : 0;
+                    if (pts < item.price) return;
+                    cur.points = pts - item.price;
+                    cur.critTier = Math.max(cur.critTier || 0, item.tier);
+                    cur.unlockedItems = Object.assign({}, cur.unlockedItems, { [item.id]: true });
+                    return cur;
+                });
+                playConquerFanfare();
+                showToast(`⚡ [${item.name}] 영구 적용 완료!`);
+            }
+        }
+
+        function renderShopItems() {
+            const listEl = document.getElementById('shop-items-list');
+            const balEl = document.getElementById('shop-balance-text');
+            if (balEl) balEl.textContent = (playerProfile.points || 0).toLocaleString();
+            if (!listEl) return;
+
+            listEl.innerHTML = '';
+
+            if (activeShopTab === 'cursor') {
+                CURSOR_SHOP_ITEMS.forEach((item) => {
+                    const unlocked = Boolean(playerProfile.unlockedItems && playerProfile.unlockedItems[item.id]);
+                    const equipped = playerProfile.equippedCursor === item.id;
+
+                    const card = document.createElement('div');
+                    card.className = `p-3 rounded-2xl border flex items-center justify-between gap-3 ${equipped ? 'bg-fuchsia-950/50 border-fuchsia-400' : 'bg-slate-800/90 border-slate-700'}`;
+                    card.innerHTML = `
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">${item.previewIcon}</div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-extrabold text-white truncate">${item.name}</div>
+                                <div class="text-[11px] text-slate-400 leading-snug">${item.desc}</div>
+                            </div>
+                        </div>
+                        <button type="button" class="px-3 py-2 rounded-xl font-extrabold text-xs shrink-0 transition cursor-pointer ${
+                            equipped
+                                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50'
+                                : unlocked
+                                    ? 'bg-sky-500 hover:bg-sky-400 text-slate-950'
+                                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                        }">
+                            ${equipped ? '✅ 장착중' : unlocked ? '장착하기' : `💰 ${item.price}P`}
+                        </button>
+                    `;
+                    card.querySelector('button').addEventListener('click', () => handlePurchaseOrEquip('cursor', item));
+                    listEl.appendChild(card);
+                });
+            } else if (activeShopTab === 'sound') {
+                SOUND_SHOP_ITEMS.forEach((item) => {
+                    const unlocked = Boolean(playerProfile.unlockedItems && playerProfile.unlockedItems[item.id]);
+                    const equipped = playerProfile.equippedSound === item.id;
+
+                    const card = document.createElement('div');
+                    card.className = `p-3 rounded-2xl border flex items-center justify-between gap-2.5 ${equipped ? 'bg-fuchsia-950/50 border-fuchsia-400' : 'bg-slate-800/90 border-slate-700'}`;
+                    card.innerHTML = `
+                        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">${item.icon}</div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-extrabold text-white truncate">${item.name}</div>
+                                <div class="text-[11px] text-slate-400 leading-snug">${item.desc}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" data-preview="1" title="소리 미리듣기" class="px-2.5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs cursor-pointer">
+                                🔊
+                            </button>
+                            <button type="button" data-buy="1" class="px-3 py-2 rounded-xl font-extrabold text-xs transition cursor-pointer ${
+                                equipped
+                                    ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50'
+                                    : unlocked
+                                        ? 'bg-sky-500 hover:bg-sky-400 text-slate-950'
+                                        : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                            }">
+                                ${equipped ? '✅ 적용중' : unlocked ? '적용하기' : `💰 ${item.price}P`}
+                            </button>
+                        </div>
+                    `;
+                    card.querySelector('[data-preview="1"]').addEventListener('click', () => playClickSound(0.75, item.id));
+                    card.querySelector('[data-buy="1"]').addEventListener('click', () => handlePurchaseOrEquip('sound', item));
+                    listEl.appendChild(card);
+                });
+            } else if (activeShopTab === 'crit') {
+                CRIT_SHOP_ITEMS.forEach((item) => {
+                    const ownedOrHigher = (playerProfile.critTier || 0) >= item.tier;
+                    const isCurrentTier = (playerProfile.critTier || 0) === item.tier;
+
+                    const card = document.createElement('div');
+                    card.className = `p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${isCurrentTier ? 'bg-amber-950/40 border-amber-400' : 'bg-slate-800/90 border-slate-700'}`;
+                    card.innerHTML = `
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-xl shrink-0">${item.icon}</div>
+                            <div class="min-w-0">
+                                <div class="text-xs font-extrabold text-white">${item.name}</div>
+                                <div class="text-[11px] text-slate-400 leading-snug mt-0.5">${item.desc}</div>
+                            </div>
+                        </div>
+                        <button type="button" class="px-3 py-2 rounded-xl font-extrabold text-xs shrink-0 transition cursor-pointer ${
+                            ownedOrHigher
+                                ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-400/50 cursor-default'
+                                : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                        }">
+                            ${isCurrentTier ? '✅ 적용중' : ownedOrHigher ? '상위보유' : `💰 ${item.price}P`}
+                        </button>
+                    `;
+                    card.querySelector('button').addEventListener('click', () => handlePurchaseOrEquip('crit', item));
+                    listEl.appendChild(card);
+                });
+            }
+        }
+
+        function setupShopModal() {
+            const shopModal = document.getElementById('shop-modal');
+            document.getElementById('btn-open-shop').addEventListener('click', () => {
+                setActiveShopTab(activeShopTab);
+                shopModal.classList.remove('hidden');
+            });
+            document.getElementById('btn-close-shop-modal').addEventListener('click', () => {
+                shopModal.classList.add('hidden');
+            });
+            document.getElementById('shop-tab-cursor').addEventListener('click', () => setActiveShopTab('cursor'));
+            document.getElementById('shop-tab-sound').addEventListener('click', () => setActiveShopTab('sound'));
+            document.getElementById('shop-tab-crit').addEventListener('click', () => setActiveShopTab('crit'));
         }
 
         // --- Boot Game ---
